@@ -18,7 +18,7 @@ public class VersionTag {
             return false;
 
         VersionTag other = (VersionTag) obj;
-        return count == other.count && nodeId.equals(other.nodeId);
+        return nodeId.equals(other.nodeId) && count == other.count;
     }
 
     @Override
