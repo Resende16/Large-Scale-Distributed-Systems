@@ -5,12 +5,11 @@ import java.util.Map;
 import java.util.Set;
 
 // An Add-Wins CRDT set, also known as an OR set
-public class AWSet<T> implements CRDT<Set<T>> {
+public class AWSet<T> implements CRDT<AWSet<T>> {
 
     private final Map<T, Map<String, Integer>> items = new HashMap<>();
     private final Map<String, Integer> versionDots =  new HashMap<>();
 
-    @Override
     public Set<T> value() {
         return items.keySet();
     }
@@ -53,6 +52,7 @@ public class AWSet<T> implements CRDT<Set<T>> {
      * Merge another AWSet into this one.
      * @param other AWSet to merge with
      */
+    @Override
     public void merge(AWSet<T> other) {
         mergeRemovedDots(other);
         mergeNewDots(other);

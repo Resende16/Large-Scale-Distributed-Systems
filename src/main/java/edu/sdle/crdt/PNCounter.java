@@ -1,13 +1,12 @@
 package edu.sdle.crdt;
 
-// A positive-negative CRDT counter
-public class PNCounter implements CRDT<Integer> {
+/// A positive-negative CRDT counter
+public class PNCounter implements CRDT<PNCounter> {
 
     private final GCounter inc = new GCounter();
     private final GCounter dec = new GCounter();
 
     // Get the value of the counter
-    @Override
     public Integer value() {
         return inc.value() - dec.value();
     }
@@ -23,6 +22,7 @@ public class PNCounter implements CRDT<Integer> {
     }
 
     // Merge a PNCounter into this one
+    @Override
     public void merge(PNCounter other) {
         inc.merge(other.inc);
         dec.merge(other.dec);
