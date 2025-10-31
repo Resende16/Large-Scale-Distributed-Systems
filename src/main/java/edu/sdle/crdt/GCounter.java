@@ -3,7 +3,7 @@ package edu.sdle.crdt;
 import java.util.HashMap;
 import java.util.Map;
 
-// A grow-only CRDT counter
+/// A grow-only CRDT counter
 public class GCounter implements CRDT<GCounter> {
 
     private final Map<String, Integer> count =  new HashMap<>();
@@ -28,5 +28,10 @@ public class GCounter implements CRDT<GCounter> {
         for (var e : other.count.entrySet()) {
             count.put(e.getKey(), Math.max(count.getOrDefault(e.getKey(), 0), e.getValue()));
         }
+    }
+
+    @Override
+    public String toString() {
+        return "GCounter(value=" + value() + ")";
     }
 }

@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-// An Add-Wins CRDT set, also known as an OR set
+/// An Add-Wins CRDT set, also known as an OR set
 public class AWSet<T> implements CRDT<AWSet<T>> {
 
     private final Map<T, Map<String, Integer>> items = new HashMap<>();
@@ -34,7 +34,6 @@ public class AWSet<T> implements CRDT<AWSet<T>> {
      * @param item Item to be removed
      * @return True if the set contained the item
      */
-    @SuppressWarnings("UnusedReturnValue")
     public boolean remove(T item) {
         return items.remove(item) != null;
     }
@@ -98,14 +97,17 @@ public class AWSet<T> implements CRDT<AWSet<T>> {
      * @param other AWSet to merge with
      */
     private void mergeRemovedDots(AWSet<T> other) {
-        for (var e : items.entrySet()) { // For each item
+        var it = items.entrySet().iterator();
+
+        while (it.hasNext()) { // For each item
+            var e = it.next();
             var item = e.getKey();
             var dots = e.getValue();
 
-            var iterator = dots.entrySet().iterator();
+            var it2 = dots.entrySet().iterator();
 
-            while (iterator.hasNext()) { // For each of its dots
-                var dot = iterator.next();
+            while (it2.hasNext()) { // For each of its dots
+                var dot = it2.next();
                 var node = dot.getKey();
                 var count = dot.getValue();
 
@@ -114,12 +116,17 @@ public class AWSet<T> implements CRDT<AWSet<T>> {
 
                 // Item dot was removed by another node
                 if (count <= otherCount && (otherDots == null || !otherDots.containsKey(node)))
-                    iterator.remove();
+                    it2.remove();
             }
 
             // No dots, thus the item is removed
             if (dots.isEmpty())
-                items.remove(item);
+                it.remove();
         }
+    }
+
+    @Override
+    public String toString() {
+        return "AWSet(value=" + value() + ")";
     }
 }

@@ -27,4 +27,9 @@ public class PNCounter implements CRDT<PNCounter> {
         inc.merge(other.inc);
         dec.merge(other.dec);
     }
+
+    @Override
+    public String toString() {
+        return "PNCounter(value=" + value() + ")";
+    }
 }
