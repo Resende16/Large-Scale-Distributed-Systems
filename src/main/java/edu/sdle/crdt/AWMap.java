@@ -2,6 +2,7 @@ package edu.sdle.crdt;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /// An Add-Wins CRDT Hashmap; value type must be a CRDT
 public class AWMap<K,V extends CRDT<V>> implements CRDT<AWMap<K, V>> {
@@ -30,6 +31,10 @@ public class AWMap<K,V extends CRDT<V>> implements CRDT<AWMap<K, V>> {
         if (!keySet.remove(key))
             return null;
         return map.remove(key);
+    }
+
+    public Set<Map.Entry<K, V>> entrySet() {
+        return map.entrySet();
     }
 
     // Merge a AWMap with this one
