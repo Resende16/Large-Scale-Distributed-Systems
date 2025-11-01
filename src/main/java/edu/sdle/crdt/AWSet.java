@@ -29,17 +29,16 @@ public class AWSet<T> implements CRDT<AWSet<T>> {
         //items.computeIfAbsent(item, _ -> new HashMap<>())
         //        .put(nodeId, counter);
 
-        if (!items.containsKey(item)) {
-            var dot = new HashMap<String, Integer>();
-            dot.put(nodeId, counter);
-            items.put(item, dot);
+        var dots = items.get(item);
+        if (dots == null) {
+            dots = new HashMap<>();
+            dots.put(nodeId, counter);
         }
         else {
-            var dots = items.get(item);
             dots.put(nodeId, counter);
             items.remove(item); // needed bc of new AWMap impl.
-            items.put(item, dots);
         }
+        items.put(item, dots);
     }
 
     /**
