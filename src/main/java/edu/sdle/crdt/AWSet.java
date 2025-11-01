@@ -26,7 +26,6 @@ public class AWSet<T> implements CRDT<AWSet<T>> {
 
         // Add item to the set if absent + update dot
 
-        // Cannot use 'computeIfAbsent' due to new structure of the AWMap
         //items.computeIfAbsent(item, _ -> new HashMap<>())
         //        .put(nodeId, counter);
 
@@ -36,7 +35,6 @@ public class AWSet<T> implements CRDT<AWSet<T>> {
             items.put(item, dot);
         }
         else {
-            System.out.println("updating");
             var dots = items.get(item);
             dots.put(nodeId, counter);
             items.remove(item); // needed bc of new AWMap impl.
