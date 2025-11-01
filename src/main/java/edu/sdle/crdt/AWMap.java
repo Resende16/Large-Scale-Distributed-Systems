@@ -33,7 +33,7 @@ public class AWMap<K,V extends CRDT<V>> implements CRDT<AWMap<K, V>> {
         return awSet.remove(new AWMapEntry<>(key));
     }
 
-    public Set<AWMapEntry<K,V>> entries() {
+    public Set<AWMapEntry<K,V>> entrySet() {
         return awSet.value();
     }
 
