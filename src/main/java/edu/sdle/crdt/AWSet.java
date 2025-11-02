@@ -25,8 +25,20 @@ public class AWSet<T> implements CRDT<AWSet<T>> {
         versionDots.put(nodeId, ++counter);
 
         // Add item to the set if absent + update dot
-        items.computeIfAbsent(item, _ -> new HashMap<>())
-                .put(nodeId, counter);
+
+        //items.computeIfAbsent(item, _ -> new HashMap<>())
+        //        .put(nodeId, counter);
+
+        var dots = items.get(item);
+        if (dots == null) {
+            dots = new HashMap<>();
+            dots.put(nodeId, counter);
+        }
+        else {
+            dots.put(nodeId, counter);
+            items.remove(item); // needed bc of new AWMap impl.
+        }
+        items.put(item, dots);
     }
 
     /**
