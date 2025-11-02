@@ -1,12 +1,29 @@
 package edu.sdle.crdt;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import java.util.HashMap;
 import java.util.Map;
 
 /// A grow-only CRDT counter
 public class GCounter implements CRDT<GCounter> {
 
-    private final Map<String, Integer> count =  new HashMap<>();
+    private final Map<String, Integer> count;
+
+    public GCounter() {
+        this.count = new HashMap<>();
+    }
+
+    @JsonCreator // for deserializing
+    public GCounter(Map<String, Integer> count) {
+        this.count = new HashMap<>(count);
+    }
+
+    @JsonValue // for serializing
+    private Map<String, Integer> asMap() {
+        return count;
+    }
 
     // Get the current value of the counter
     public Integer value() {
@@ -32,6 +49,6 @@ public class GCounter implements CRDT<GCounter> {
 
     @Override
     public String toString() {
-        return "GCounter(value=" + value() + ")";
+        return "GCounter(" + value() + ")";
     }
 }
