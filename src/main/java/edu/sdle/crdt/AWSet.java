@@ -1,5 +1,7 @@
 package edu.sdle.crdt;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -7,8 +9,11 @@ import java.util.Set;
 /// An Add-Wins CRDT set, also known as an OR set
 public class AWSet<T> implements CRDT<AWSet<T>> {
 
+    @JsonProperty
     private final Map<T, Map<String, Integer>> items = new HashMap<>();
-    private final Map<String, Integer> versionDots =  new HashMap<>();
+
+    @JsonProperty("version")
+    private final Map<String, Integer> versionDots = new HashMap<>();
 
     public Set<T> value() {
         return items.keySet();
@@ -139,6 +144,6 @@ public class AWSet<T> implements CRDT<AWSet<T>> {
 
     @Override
     public String toString() {
-        return "AWSet(value=" + value() + ")";
+        return "AWSet(" + value() + ")";
     }
 }
