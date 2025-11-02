@@ -1,8 +1,21 @@
 package edu.sdle.crdt;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+
+import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 /// An Add-Wins CRDT Hashmap; value type must be a CRDT
+@JsonSerialize(using = AWMap.Serializer.class)
+@JsonDeserialize(using = AWMap.Deserializer.class)
 public class AWMap<K,V extends CRDT<V>> implements CRDT<AWMap<K, V>> {
 
     private final AWSet<AWMapEntry<K, V>> awSet = new AWSet<>();
@@ -54,9 +67,9 @@ public class AWMap<K,V extends CRDT<V>> implements CRDT<AWMap<K, V>> {
     @Override
     public String toString() {
         if (awSet.value().isEmpty())
-            return "AWMap(map={})";
+            return "AWMap({})";
 
-        StringBuilder sb = new StringBuilder("AWMap(map={\n");
+        StringBuilder sb = new StringBuilder("AWMap({\n");
         for (var e : awSet.value()) {
             sb.append("  ")
                     .append(e.key())
@@ -65,5 +78,72 @@ public class AWMap<K,V extends CRDT<V>> implements CRDT<AWMap<K, V>> {
         }
         sb.append("})");
         return sb.toString();
+    }
+
+    public static class Serializer<K, V extends CRDT<V>> extends JsonSerializer<AWMap<K, V>> {
+        @Override
+        public void serialize(AWMap<K, V> map, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeFieldName("items");
+            gen.writeStartArray();
+
+            for (var e : map.entrySet()) {
+                gen.writeStartObject();
+                gen.writeObjectField("key", e.key());
+                gen.writeObjectField("value", e.value());
+                gen.writeObjectField("dots", map.awSet.items.get(e));
+                gen.writeEndObject();
+            }
+            gen.writeEndArray();
+            gen.writeObjectField("version", map.awSet.versionDots);
+        }
+
+        @Override
+        public void serializeWithType(
+                AWMap<K, V> map,
+                JsonGenerator gen,
+                SerializerProvider serializers,
+                TypeSerializer typeSer
+        ) throws IOException {
+            gen.writeStartObject();
+            gen.writeStringField("type", "AWMap");
+            serialize(map, gen, serializers);
+            gen.writeEndObject();
+        }
+    }
+
+    public static class Deserializer<K, V extends CRDT<V>> extends JsonDeserializer<AWMap<K, V>> {
+        @Override
+        @SuppressWarnings("unchecked")
+        public AWMap<K, V> deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+            ObjectCodec codec = p.getCodec();
+            JsonNode root = codec.readTree(p);
+            ObjectMapper mapper = (ObjectMapper) p.getCodec();
+
+            AWMap<K, V> map = new AWMap<>();
+
+            // Parse items
+            JsonNode items = root.get("items");
+            if (items != null && items.isArray()) {
+                for (JsonNode item : items) {
+                    K key = mapper.convertValue(item.get("key"), new TypeReference<>() {});
+                    V value = (V) mapper.convertValue(item.get("value"), CRDT.class);
+                    Map<String, Integer> dots = mapper.convertValue(item.get("dots"),
+                            new TypeReference<>() {});
+
+                    var entry = new AWMapEntry<>(key, value);
+                    map.awSet.items.put(entry, dots);
+                }
+            }
+
+            // Parse version dots
+            JsonNode version = root.get("version");
+            if (version != null && version.isObject()) {
+                Map<String, Integer> versionDots =
+                        ((ObjectMapper) codec).convertValue(version, new TypeReference<>() {});
+                map.awSet.versionDots.putAll(versionDots);
+            }
+
+            return map;
+        }
     }
 }

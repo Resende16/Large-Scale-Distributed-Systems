@@ -1,8 +1,13 @@
 package edu.sdle.crdt;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Objects;
 
-public record AWMapEntry<K, V extends CRDT<V>>(K key, V value) {
+public record AWMapEntry<K, V extends CRDT<V>>(
+        @JsonProperty("key") K key,
+        @JsonProperty("value") V value
+) {
 
     // Useful for == comparisons, where the value is redundant
     public AWMapEntry(K key) {

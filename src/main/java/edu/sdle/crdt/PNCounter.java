@@ -1,12 +1,18 @@
 package edu.sdle.crdt;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /// A positive-negative CRDT counter
 public class PNCounter implements CRDT<PNCounter> {
 
-    @JsonProperty private final GCounter inc = new GCounter();
-    @JsonProperty private final GCounter dec = new GCounter();
+    @JsonProperty("+")
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
+    private final GCounter inc = new GCounter();
+
+    @JsonProperty("-")
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
+    private final GCounter dec = new GCounter();
 
     // Get the value of the counter
     public Integer value() {

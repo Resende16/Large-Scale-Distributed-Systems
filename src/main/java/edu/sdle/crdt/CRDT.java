@@ -1,5 +1,19 @@
 package edu.sdle.crdt;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "type"
+)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = GCounter.class, name = "GCounter"),
+        @JsonSubTypes.Type(value = PNCounter.class, name = "PNCounter"),
+        @JsonSubTypes.Type(value = AWSet.class, name = "AWSet"),
+        @JsonSubTypes.Type(value = AWMap.class, name = "AWMap")
+})
 /// A conflict-free replicated data type
 public interface CRDT<T extends CRDT<T>> {
     /**

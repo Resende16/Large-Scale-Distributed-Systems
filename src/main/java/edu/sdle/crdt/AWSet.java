@@ -10,10 +10,10 @@ import java.util.Set;
 public class AWSet<T> implements CRDT<AWSet<T>> {
 
     @JsonProperty
-    private final Map<T, Map<String, Integer>> items = new HashMap<>();
+    protected final Map<T, Map<String, Integer>> items = new HashMap<>();
 
     @JsonProperty("version")
-    private final Map<String, Integer> versionDots = new HashMap<>();
+    protected final Map<String, Integer> versionDots = new HashMap<>();
 
     public Set<T> value() {
         return items.keySet();
