@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /// A positive-negative CRDT counter
-public class PNCounter implements CRDT<PNCounter> {
+public class PNCounter implements ICRDT<PNCounter> {
 
     @JsonProperty("+")
     @JsonTypeInfo(use = JsonTypeInfo.Id.NONE)

@@ -7,8 +7,9 @@ import java.util.Map;
 import java.util.Set;
 
 /// An Add-Wins CRDT set, also known as an OR set
-public class AWSet<T> implements CRDT<AWSet<T>> {
+public class AWSet<T> implements ICRDT<AWSet<T>> {
 
+    // "protected" so that AWMap's serializer can access it
     @JsonProperty
     protected final Map<T, Map<String, Integer>> items = new HashMap<>();
 

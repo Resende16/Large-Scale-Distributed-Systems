@@ -16,7 +16,7 @@ import java.util.Set;
 /// An Add-Wins CRDT Hashmap; value type must be a CRDT
 @JsonSerialize(using = AWMap.Serializer.class)
 @JsonDeserialize(using = AWMap.Deserializer.class)
-public class AWMap<K,V extends CRDT<V>> implements CRDT<AWMap<K, V>> {
+public class AWMap<K,V extends ICRDT<V>> implements ICRDT<AWMap<K, V>> {
 
     private final AWSet<AWMapEntry<K, V>> awSet = new AWSet<>();
 
@@ -80,7 +80,7 @@ public class AWMap<K,V extends CRDT<V>> implements CRDT<AWMap<K, V>> {
         return sb.toString();
     }
 
-    public static class Serializer<K, V extends CRDT<V>> extends JsonSerializer<AWMap<K, V>> {
+    public static class Serializer<K, V extends ICRDT<V>> extends JsonSerializer<AWMap<K, V>> {
         @Override
         public void serialize(AWMap<K, V> map, JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeFieldName("items");
@@ -111,7 +111,7 @@ public class AWMap<K,V extends CRDT<V>> implements CRDT<AWMap<K, V>> {
         }
     }
 
-    public static class Deserializer<K, V extends CRDT<V>> extends JsonDeserializer<AWMap<K, V>> {
+    public static class Deserializer<K, V extends ICRDT<V>> extends JsonDeserializer<AWMap<K, V>> {
         @Override
         @SuppressWarnings("unchecked")
         public AWMap<K, V> deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
@@ -126,7 +126,7 @@ public class AWMap<K,V extends CRDT<V>> implements CRDT<AWMap<K, V>> {
             if (items != null && items.isArray()) {
                 for (JsonNode item : items) {
                     K key = mapper.convertValue(item.get("key"), new TypeReference<>() {});
-                    V value = (V) mapper.convertValue(item.get("value"), CRDT.class);
+                    V value = (V) mapper.convertValue(item.get("value"), ICRDT.class);
                     Map<String, Integer> dots = mapper.convertValue(item.get("dots"),
                             new TypeReference<>() {});
 

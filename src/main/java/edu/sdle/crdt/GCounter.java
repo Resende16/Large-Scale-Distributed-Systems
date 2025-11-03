@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /// A grow-only CRDT counter
-public class GCounter implements CRDT<GCounter> {
+public class GCounter implements ICRDT<GCounter> {
 
     private final Map<String, Integer> count;
 

@@ -15,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = AWMap.class, name = "AWMap")
 })
 /// A conflict-free replicated data type
-public interface CRDT<T extends CRDT<T>> {
+public interface ICRDT<T extends ICRDT<T>> {
     /**
      * Merge another CRDT into this one; types must match
      * @param other CRDT to merge with
