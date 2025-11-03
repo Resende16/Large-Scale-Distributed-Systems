@@ -1,6 +1,7 @@
 package edu.sdle;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.UUID;
 
@@ -14,7 +15,8 @@ public class Client {
     }
 
     @JsonCreator
-    public Client(final UUID id, final String name) {
+    public Client(@JsonProperty("id") final UUID id,
+                  @JsonProperty("name") final String name) {
         this.id = id;
         this.name = name;
     }
