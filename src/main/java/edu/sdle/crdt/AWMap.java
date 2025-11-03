@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
-/// An Add-Wins CRDT Hashmap; value type must be a CRDT
+/// An Add-Wins CRDT map; value type must be a CRDT
 @JsonSerialize(using = AWMap.Serializer.class)
 @JsonDeserialize(using = AWMap.Deserializer.class)
 public class AWMap<K,V extends ICRDT<V>> implements ICRDT<AWMap<K, V>> {
