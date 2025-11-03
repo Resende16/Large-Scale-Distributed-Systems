@@ -1,16 +1,12 @@
 package edu.sdle;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.UUID;
 
 public class Client {
 
-    @JsonProperty
     private final UUID id;
-
-    @JsonProperty
     private String name;
 
     public Client(final String name) {
