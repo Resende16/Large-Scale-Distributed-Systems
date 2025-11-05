@@ -1,13 +1,24 @@
 package edu.sdle.crdt;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /// A Last-writer-wins register
 public class LWWRegister<T> implements ICRDT<LWWRegister<T>> {
 
-    private T value;
-    private Timestamp clock;
+    @JsonProperty private T value;
+    @JsonProperty private Timestamp timestamp;
 
-    public LWWRegister(T value) {
+    public LWWRegister(T value, String nodeId) {
         this.value = value;
+        this.timestamp = new Timestamp(nodeId);
+    }
+
+    @JsonCreator
+    public LWWRegister(@JsonProperty("value") T value,
+                       @JsonProperty("timestamp") Timestamp timestamp) {
+        this.value = value;
+        this.timestamp = timestamp;
     }
 
     public T value() {
@@ -15,15 +26,20 @@ public class LWWRegister<T> implements ICRDT<LWWRegister<T>> {
     }
 
     public void assign(T value, String nodeId) {
-        clock.inc(nodeId);
+        timestamp.inc(nodeId);
         this.value = value;
     }
 
     @Override
     public void merge(LWWRegister<T> other) {
-        if (clock.happenedBefore(other.clock)) {
+        if (timestamp.happenedBefore(other.timestamp)) {
             value = other.value;
-            clock = other.clock;
+            timestamp = other.timestamp;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "LWWRegister(" + value + ")";
     }
 }

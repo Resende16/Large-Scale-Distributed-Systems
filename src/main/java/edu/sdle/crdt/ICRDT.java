@@ -9,8 +9,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         property = "type"
 )
 @JsonSubTypes({
+        @JsonSubTypes.Type(value = LWWRegister.class, name = "LWWRegister"),
         @JsonSubTypes.Type(value = GCounter.class, name = "GCounter"),
         @JsonSubTypes.Type(value = PNCounter.class, name = "PNCounter"),
+        @JsonSubTypes.Type(value = GSet.class, name = "GSet"),
         @JsonSubTypes.Type(value = AWSet.class, name = "AWSet"),
         @JsonSubTypes.Type(value = AWMap.class, name = "AWMap")
 })

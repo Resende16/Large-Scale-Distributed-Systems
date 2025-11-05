@@ -5,8 +5,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import java.util.Set;
+import java.util.UUID;
 
-/// An Add-Wins CRDT map; value type must be a CRDT
+/// An Add-Wins map; value type must be a CRDT
 @JsonSerialize(using = AWMapSerializer.class)
 @JsonDeserialize(using = AWMapDeserializer.class)
 public class AWMap<K,V extends ICRDT<V>> implements ICRDT<AWMap<K, V>> {
@@ -24,7 +25,7 @@ public class AWMap<K,V extends ICRDT<V>> implements ICRDT<AWMap<K, V>> {
     }
 
     // Map a key to a value in the map
-    public void put(K key, V value, String nodeId) {
+    public void put(K key, V value, UUID nodeId) {
         var entry = new AWMapEntry<>(key, value);
         awSet.add(entry, nodeId);
     }

@@ -10,37 +10,38 @@ import java.util.UUID;
 public class ShoppingList implements ICRDT<ShoppingList> {
 
     public final UUID id;
-    public final String name;
-
-    // Clients who have accessed the shopping list
-    public final AWSet<Client> accessors;
-
+    public final LWWRegister<String> name;
     public final AWMap<String, PNCounter> items;
 
-    public ShoppingList(String name) {
+    // Clients who have viewed the shopping list
+    public final GSet<Client> viewers;
+
+    public ShoppingList(String name, Client creator) {
         this.id = UUID.randomUUID();
-        this.name = name;
+        this.name = new LWWRegister<>(name, creator.id().toString());
         this.items = new AWMap<>();
-        this.accessors = new AWSet<>();
+        this.viewers = new GSet<>();
+        viewers.add(creator);
     }
 
     @JsonCreator
     public ShoppingList(
             @JsonProperty("id") UUID id,
-            @JsonProperty("name") String name,
-            @JsonProperty("accessors") AWSet<Client> accessors,
-            @JsonProperty("items") AWMap<String, PNCounter> items
+            @JsonProperty("name") LWWRegister<String> name,
+            @JsonProperty("items") AWMap<String, PNCounter> items,
+            @JsonProperty("viewers") GSet<Client> viewers
     ) {
         this.id = id;
         this.name = name;
-        this.accessors = accessors;
+        this.viewers = viewers;
         this.items = items;
     }
 
     // Merge a shopping list into this one
     @Override
     public void merge(ShoppingList other) {
-        accessors.merge(other.accessors);
+        name.merge(other.name);
+        viewers.merge(other.viewers);
         items.merge(other.items);
     }
 }

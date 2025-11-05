@@ -5,19 +5,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
-/// An Add-Wins CRDT set, also known as an OR set
+/// An Add-Wins set, also known as an OR set
 public class AWSet<T> implements ICRDT<AWSet<T>> {
 
     // package-private so that AWMap's serializer can access it
     @JsonProperty
-    final Map<T, Map<String, Integer>> items = new HashMap<>();
+    final Map<T, Map<UUID, Integer>> items = new HashMap<>();
 
     @JsonProperty("version")
-    final Map<String, Integer> versionDots = new HashMap<>();
+    final Map<UUID, Integer> versionDots = new HashMap<>();
 
     public Set<T> value() {
-        return items.keySet();
+        return Set.copyOf(items.keySet());
     }
 
     /**
@@ -25,7 +26,7 @@ public class AWSet<T> implements ICRDT<AWSet<T>> {
      * @param item Item to be added
      * @param nodeId ID of the node responsible for the add
      */
-    public void add(T item, String nodeId) {
+    public void add(T item, UUID nodeId) {
         // Increment node dot
         int counter = versionDots.getOrDefault(nodeId, 0);
         versionDots.put(nodeId, ++counter);
@@ -89,7 +90,7 @@ public class AWSet<T> implements ICRDT<AWSet<T>> {
             var otherItem = e.getKey();
             var otherDots = e.getValue();
 
-            Map<String, Integer> newDots = new HashMap<>();
+            Map<UUID, Integer> newDots = new HashMap<>();
 
             // Track dots we haven't seen
             for (var dot : otherDots.entrySet()) {

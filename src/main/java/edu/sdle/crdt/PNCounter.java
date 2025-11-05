@@ -1,16 +1,15 @@
 package edu.sdle.crdt;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+import java.util.UUID;
 
 /// A positive-negative CRDT counter
 public class PNCounter implements ICRDT<PNCounter> {
 
-    @JsonProperty("+")
     @JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
     private final GCounter inc = new GCounter();
 
-    @JsonProperty("-")
     @JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
     private final GCounter dec = new GCounter();
 
@@ -20,12 +19,12 @@ public class PNCounter implements ICRDT<PNCounter> {
     }
 
     // Increment the counter for a node
-    public void inc(String nodeId) {
+    public void inc(UUID nodeId) {
         inc.inc(nodeId);
     }
 
     // Decrement the counter for a node
-    public void dec(String nodeId) {
+    public void dec(UUID nodeId) {
         dec.inc(nodeId);
     }
 

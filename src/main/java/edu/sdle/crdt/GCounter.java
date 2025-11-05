@@ -5,23 +5,24 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /// A grow-only CRDT counter
 public class GCounter implements ICRDT<GCounter> {
 
-    private final Map<String, Integer> count;
+    private final Map<UUID, Integer> count;
 
     public GCounter() {
         this.count = new HashMap<>();
     }
 
     @JsonCreator // for deserializing
-    public GCounter(Map<String, Integer> count) {
+    public GCounter(Map<UUID, Integer> count) {
         this.count = new HashMap<>(count);
     }
 
     @JsonValue // for serializing
-    private Map<String, Integer> asMap() {
+    private Map<UUID, Integer> asMap() {
         return count;
     }
 
@@ -35,7 +36,7 @@ public class GCounter implements ICRDT<GCounter> {
     }
 
     // Increment the counter for a node
-    public void inc(String nodeId) {
+    public void inc(UUID nodeId) {
         count.put(nodeId, count.getOrDefault(nodeId, 0) + 1);
     }
 
