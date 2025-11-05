@@ -8,10 +8,9 @@ import java.util.UUID;
 
 /// A shopping list, implemented as a CRDT.
 public class ShoppingList implements ICRDT<ShoppingList> {
-
     public final UUID id;
     public final LWWRegister<String> name;
-    public final AWMap<String, PNCounter> items;
+    public final AWMap<String, ItemQuantity> items;
 
     // Clients who have viewed the shopping list
     public final GSet<Client> viewers;
@@ -28,7 +27,7 @@ public class ShoppingList implements ICRDT<ShoppingList> {
     public ShoppingList(
             @JsonProperty("id") UUID id,
             @JsonProperty("name") LWWRegister<String> name,
-            @JsonProperty("items") AWMap<String, PNCounter> items,
+            @JsonProperty("items") AWMap<String, ItemQuantity> items,
             @JsonProperty("viewers") GSet<Client> viewers
     ) {
         this.id = id;

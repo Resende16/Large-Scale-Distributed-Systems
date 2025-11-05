@@ -14,7 +14,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = PNCounter.class, name = "PNCounter"),
         @JsonSubTypes.Type(value = GSet.class, name = "GSet"),
         @JsonSubTypes.Type(value = AWSet.class, name = "AWSet"),
-        @JsonSubTypes.Type(value = AWMap.class, name = "AWMap")
+        @JsonSubTypes.Type(value = AWMap.class, name = "AWMap"),
+        @JsonSubTypes.Type(value = ItemQuantity.class, name = "ItemQuantity"),
+        @JsonSubTypes.Type(value = ShoppingList.class, name = "ShoppingList")
 })
 /// A conflict-free replicated data type
 public interface ICRDT<T extends ICRDT<T>> {
