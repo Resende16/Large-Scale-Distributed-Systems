@@ -18,7 +18,7 @@ public class ShoppingList implements ICRDT<ShoppingList> {
 
     public ShoppingList(String name, Client creator) {
         this.id = UUID.randomUUID();
-        this.name = new LWWRegister<>(name, creator.id().toString());
+        this.name = new LWWRegister<>(name, creator.id());
         this.items = new AWMap<>();
         this.viewers = new GSet<>();
         viewers.add(creator);

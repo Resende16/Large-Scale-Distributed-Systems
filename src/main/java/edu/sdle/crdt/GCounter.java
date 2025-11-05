@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/// A grow-only CRDT counter
+/// A grow-only counter
 public class GCounter implements ICRDT<GCounter> {
 
     private final Map<UUID, Integer> count;

@@ -3,15 +3,17 @@ package edu.sdle.crdt;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.UUID;
+
 /// A Last-writer-wins register
 public class LWWRegister<T> implements ICRDT<LWWRegister<T>> {
 
     @JsonProperty private T value;
     @JsonProperty private Timestamp timestamp;
 
-    public LWWRegister(T value, String nodeId) {
+    public LWWRegister(T value, UUID node) {
         this.value = value;
-        this.timestamp = new Timestamp(nodeId);
+        this.timestamp = new Timestamp(node);
     }
 
     @JsonCreator
@@ -25,8 +27,8 @@ public class LWWRegister<T> implements ICRDT<LWWRegister<T>> {
         return value;
     }
 
-    public void assign(T value, String nodeId) {
-        timestamp.inc(nodeId);
+    public void assign(T value, UUID node) {
+        timestamp.inc(node);
         this.value = value;
     }
 

@@ -10,8 +10,7 @@ import java.util.UUID;
 /// An Add-Wins set, also known as an OR set
 public class AWSet<T> implements ICRDT<AWSet<T>> {
 
-    // package-private so that AWMap's serializer can access it
-    @JsonProperty
+    @JsonProperty("set")
     final Map<T, Map<UUID, Integer>> items = new HashMap<>();
 
     @JsonProperty("version")
@@ -146,6 +145,6 @@ public class AWSet<T> implements ICRDT<AWSet<T>> {
 
     @Override
     public String toString() {
-        return "AWSet(" + value() + ")";
+        return "AWSet(" + items.keySet() + ")";
     }
 }

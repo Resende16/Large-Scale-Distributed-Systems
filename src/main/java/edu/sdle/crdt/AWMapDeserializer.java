@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID;
 
 public class AWMapDeserializer<K, V extends ICRDT<V>> extends JsonDeserializer<AWMap<K, V>> {
     @Override
@@ -22,12 +23,12 @@ public class AWMapDeserializer<K, V extends ICRDT<V>> extends JsonDeserializer<A
         AWMap<K, V> map = new AWMap<>();
 
         // Parse items
-        JsonNode items = root.get("items");
+        JsonNode items = root.get("map");
         if (items != null && items.isArray()) {
             for (JsonNode item : items) {
                 K key = mapper.convertValue(item.get("key"), new TypeReference<>() {});
                 V value = (V) mapper.convertValue(item.get("value"), ICRDT.class);
-                Map<String, Integer> dots = mapper.convertValue(item.get("dots"),
+                Map<UUID, Integer> dots = mapper.convertValue(item.get("dots"),
                         new TypeReference<>() {});
 
                 var entry = new AWMapEntry<>(key, value);
@@ -38,7 +39,7 @@ public class AWMapDeserializer<K, V extends ICRDT<V>> extends JsonDeserializer<A
         // Parse version dots
         JsonNode version = root.get("version");
         if (version != null && version.isObject()) {
-            Map<String, Integer> versionDots =
+            Map<UUID, Integer> versionDots =
                     ((ObjectMapper) codec).convertValue(version, new TypeReference<>() {});
             map.awSet.versionDots.putAll(versionDots);
         }

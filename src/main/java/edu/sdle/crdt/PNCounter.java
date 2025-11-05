@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.UUID;
 
-/// A positive-negative CRDT counter
+/// A positive-negative counter
 public class PNCounter implements ICRDT<PNCounter> {
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NONE)

@@ -20,6 +20,6 @@ public record Client(UUID id, String name) {
 
     @Override
     public String toString() {
-        return id + ":" + name;
+        return "Client(" + id + ", " + name + ")";
     }
 }

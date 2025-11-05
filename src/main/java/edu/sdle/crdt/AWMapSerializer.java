@@ -10,7 +10,7 @@ import java.io.IOException;
 public class AWMapSerializer<K, V extends ICRDT<V>> extends JsonSerializer<AWMap<K, V>> {
     @Override
     public void serialize(AWMap<K, V> map, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeFieldName("items");
+        gen.writeFieldName("map");
         gen.writeStartArray();
 
         for (var e : map.entrySet()) {
