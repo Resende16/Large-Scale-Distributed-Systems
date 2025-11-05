@@ -1,5 +1,6 @@
 package edu.sdle.crdt;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.UUID;
@@ -14,6 +15,7 @@ public class Timestamp {
     }
 
     // For deserialization; uid is node:count
+    @JsonCreator
     private Timestamp(String uid) {
         String[] k = uid.split(":");
         if (k.length != 2)
