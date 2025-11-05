@@ -40,7 +40,7 @@ public class GCounter implements ICRDT<GCounter> {
         count.put(nodeId, count.getOrDefault(nodeId, 0) + 1);
     }
 
-    // Merge another GCounter into this one
+    // Merge a GCounter into this one
     @Override
     public void merge(GCounter other) {
         for (var e : other.count.entrySet()) {

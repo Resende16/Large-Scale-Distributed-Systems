@@ -66,7 +66,7 @@ public class AWSet<T> implements ICRDT<AWSet<T>> {
     }
 
     /**
-     * Merge another AWSet into this one.
+     * Merge a AWSet into this one.
      * @param other AWSet to merge with
      */
     @Override
