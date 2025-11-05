@@ -17,7 +17,7 @@ public class GCounter implements ICRDT<GCounter> {
     }
 
     @JsonCreator // for deserializing
-    public GCounter(Map<UUID, Integer> count) {
+    private GCounter(Map<UUID, Integer> count) {
         this.count = new HashMap<>(count);
     }
 
