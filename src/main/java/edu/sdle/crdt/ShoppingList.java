@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.sdle.User;
 import edu.sdle.crdt.collections.AWMap;
 import edu.sdle.crdt.collections.GSet;
+import edu.sdle.crdt.lww.LWWRegister;
 
 import java.util.UUID;
 

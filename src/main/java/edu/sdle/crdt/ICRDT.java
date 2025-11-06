@@ -7,6 +7,7 @@ import edu.sdle.crdt.collections.AWSet;
 import edu.sdle.crdt.collections.GSet;
 import edu.sdle.crdt.counters.GCounter;
 import edu.sdle.crdt.counters.PNCounter;
+import edu.sdle.crdt.lww.LWWRegister;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,

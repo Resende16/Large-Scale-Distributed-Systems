@@ -1,7 +1,8 @@
-package edu.sdle.crdt;
+package edu.sdle.crdt.lww;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.sdle.crdt.ICRDT;
 
 import java.util.UUID;
 
