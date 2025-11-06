@@ -1,7 +1,8 @@
-package edu.sdle.crdt;
+package edu.sdle.crdt.counters;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import edu.sdle.crdt.ICRDT;
 
 import java.util.HashMap;
 import java.util.Map;

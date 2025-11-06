@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.sdle.User;
+import edu.sdle.crdt.collections.AWMap;
+import edu.sdle.crdt.collections.GSet;
 
 import java.util.UUID;
 

@@ -2,6 +2,11 @@ package edu.sdle.crdt;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import edu.sdle.crdt.collections.AWMap;
+import edu.sdle.crdt.collections.AWSet;
+import edu.sdle.crdt.collections.GSet;
+import edu.sdle.crdt.counters.GCounter;
+import edu.sdle.crdt.counters.PNCounter;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,

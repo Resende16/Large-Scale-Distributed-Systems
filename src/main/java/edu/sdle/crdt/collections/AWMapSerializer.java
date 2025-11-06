@@ -1,9 +1,10 @@
-package edu.sdle.crdt;
+package edu.sdle.crdt.collections;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
+import edu.sdle.crdt.ICRDT;
 
 import java.io.IOException;
 

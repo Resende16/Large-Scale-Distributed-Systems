@@ -1,8 +1,8 @@
-package edu.sdle.crdt;
+package edu.sdle.crdt.collections;
 
-import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import edu.sdle.crdt.*;
 
 import java.util.Set;
 import java.util.UUID;

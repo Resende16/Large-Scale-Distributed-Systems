@@ -1,6 +1,7 @@
-package edu.sdle.crdt;
+package edu.sdle.crdt.counters;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import edu.sdle.crdt.ICRDT;
 
 import java.util.UUID;
 

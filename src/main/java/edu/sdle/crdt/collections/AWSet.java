@@ -1,6 +1,7 @@
-package edu.sdle.crdt;
+package edu.sdle.crdt.collections;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.sdle.crdt.ICRDT;
 
 import java.util.HashMap;
 import java.util.Map;

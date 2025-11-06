@@ -1,4 +1,6 @@
-package edu.sdle.crdt;
+package edu.sdle.crdt.collections;
+
+import edu.sdle.crdt.ICRDT;
 
 import java.util.Objects;
 

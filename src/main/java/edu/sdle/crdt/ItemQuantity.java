@@ -3,6 +3,7 @@ package edu.sdle.crdt;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.sdle.crdt.counters.PNCounter;
 
 import java.util.UUID;
 
