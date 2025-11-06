@@ -1,6 +1,7 @@
 package edu.sdle.crdt;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.sdle.Client;
 
@@ -8,12 +9,12 @@ import java.util.UUID;
 
 /// A shopping list, implemented as a CRDT.
 public class ShoppingList implements ICRDT<ShoppingList> {
-    public final UUID id;
-    public final LWWRegister<String> name;
-    public final AWMap<String, ItemQuantity> items;
+    @JsonProperty private final UUID id;
+    @JsonProperty private final LWWRegister<String> name;
+    @JsonProperty private final AWMap<String, ItemQuantity> items;
 
     // Clients who have viewed the shopping list
-    public final GSet<Client> viewers;
+    @JsonProperty private final GSet<Client> viewers;
 
     public ShoppingList(String name, Client creator) {
         this.id = UUID.randomUUID();
@@ -24,7 +25,7 @@ public class ShoppingList implements ICRDT<ShoppingList> {
     }
 
     @JsonCreator
-    public ShoppingList(
+    private ShoppingList(
             @JsonProperty("id") UUID id,
             @JsonProperty("name") LWWRegister<String> name,
             @JsonProperty("items") AWMap<String, ItemQuantity> items,
@@ -34,6 +35,26 @@ public class ShoppingList implements ICRDT<ShoppingList> {
         this.name = name;
         this.viewers = viewers;
         this.items = items;
+    }
+
+    @JsonIgnore
+    public UUID getId() {
+        return id;
+    }
+
+    @JsonIgnore
+    public String getName() {
+        return name.value();
+    }
+
+    @JsonIgnore
+    public GSet<Client> getViewers() {
+        return viewers;
+    }
+
+    @JsonIgnore
+    public AWMap<String, ItemQuantity> getItems() {
+        return items;
     }
 
     // Merge a shopping list into this one
