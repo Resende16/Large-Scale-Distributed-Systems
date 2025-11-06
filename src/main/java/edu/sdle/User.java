@@ -21,7 +21,7 @@ public record User(UUID id, String name) {
 
     @Override
     public String toString() {
-        return "Client(" + id + ", " + name + ")";
+        return "User(" + id + ", " + name + ")";
     }
 
     // Ignore name when comparing
