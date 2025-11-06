@@ -23,21 +23,4 @@ public record User(UUID id, String name) {
     public String toString() {
         return "User(" + id + ", " + name + ")";
     }
-
-    // Ignore name when comparing
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-
-        User other = (User) o;
-        return Objects.equals(id, other.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
 }
