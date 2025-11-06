@@ -12,6 +12,11 @@ public class FileStorage implements Storage {
     private final String dirName;
     private final ObjectMapper mapper;
 
+    public FileStorage() {
+        // Use current directory
+        this("./");
+    }
+
     public FileStorage(String dirName) {
         this.dirName = dirName;
         this.mapper = new ObjectMapper();

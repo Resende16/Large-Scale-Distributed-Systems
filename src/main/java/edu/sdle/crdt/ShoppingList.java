@@ -57,6 +57,10 @@ public class ShoppingList implements ICRDT<ShoppingList> {
         return items;
     }
 
+    public void setName(String name, UUID node) {
+        this.name.assign(name, node);
+    }
+
     // Merge a shopping list into this one
     @Override
     public void merge(ShoppingList other) {
