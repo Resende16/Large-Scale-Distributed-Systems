@@ -5,6 +5,7 @@ import edu.sdle.crdt.ShoppingList;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 
 public class FileStorage implements Storage {
@@ -49,14 +50,17 @@ public class FileStorage implements Storage {
     public ArrayList<ShoppingList> getAll() throws IOException {
         ArrayList<ShoppingList> result = new ArrayList<>();
 
-        // Filter for JSON files
         File dir = new File(dirName);
-        File[] files = dir.listFiles((_, name) -> name.endsWith(".json"));
+        if (!dir.exists())
+            return result;
+
+        File[] files = dir.listFiles();
 
         if (files != null) {
             for (File file : files) {
-                ShoppingList list = mapper.readValue(file, ShoppingList.class);
-                result.add(list);
+                // Filter for JSON files
+                if (file.getName().endsWith(".json"))
+                    result.add(mapper.readValue(file, ShoppingList.class));
             }
         }
         return result;
