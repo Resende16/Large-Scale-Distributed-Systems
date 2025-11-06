@@ -3,7 +3,7 @@ package edu.sdle.crdt;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import edu.sdle.Client;
+import edu.sdle.User;
 
 import java.util.UUID;
 
@@ -14,9 +14,9 @@ public class ShoppingList implements ICRDT<ShoppingList> {
     @JsonProperty private final AWMap<String, ItemQuantity> items;
 
     // Clients who have viewed the shopping list
-    @JsonProperty private final GSet<Client> viewers;
+    @JsonProperty private final GSet<User> viewers;
 
-    public ShoppingList(String name, Client creator) {
+    public ShoppingList(String name, User creator) {
         this.id = UUID.randomUUID();
         this.name = new LWWRegister<>(name, creator.id());
         this.items = new AWMap<>();
@@ -29,8 +29,7 @@ public class ShoppingList implements ICRDT<ShoppingList> {
             @JsonProperty("id") UUID id,
             @JsonProperty("name") LWWRegister<String> name,
             @JsonProperty("items") AWMap<String, ItemQuantity> items,
-            @JsonProperty("viewers") GSet<Client> viewers
-    ) {
+            @JsonProperty("viewers") GSet<User> viewers) {
         this.id = id;
         this.name = name;
         this.viewers = viewers;
@@ -48,7 +47,7 @@ public class ShoppingList implements ICRDT<ShoppingList> {
     }
 
     @JsonIgnore
-    public GSet<Client> getViewers() {
+    public GSet<User> getViewers() {
         return viewers;
     }
 
