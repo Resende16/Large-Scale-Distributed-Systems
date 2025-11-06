@@ -10,7 +10,7 @@ public interface Storage {
     /**
      * Retrieve a shopping list from storage.
      * @param id Unique id of the list
-     * @return A shopping list, or null
+     * @return A shopping list, or null if not found
      */
     ShoppingList get(UUID id) throws IOException;
 
@@ -23,14 +23,14 @@ public interface Storage {
     /**
      * Add or update a shopping list.
      * @param list Shopping list to add
-     * @return True if successful
+     * @return True on success, false otherwise
      */
     boolean add(ShoppingList list) throws IOException;
 
     /**
      * Remove a shopping list from storage.
      * @param id Unique id of the list
-     * @return True if successful
+     * @return True on success, false otherwise
      */
     boolean remove(UUID id) throws IOException;
 }
