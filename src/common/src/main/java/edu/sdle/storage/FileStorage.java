@@ -5,7 +5,6 @@ import edu.sdle.crdt.ShoppingList;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.UUID;
 
 public class FileStorage implements Storage {
