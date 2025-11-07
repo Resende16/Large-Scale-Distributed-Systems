@@ -1,0 +1,50 @@
+package edu.sdle.crdt.collections;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.sdle.crdt.ICRDT;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
+
+public class AWMapDeserializer<K, V extends ICRDT<V>> extends JsonDeserializer<AWMap<K, V>> {
+    @Override
+    @SuppressWarnings("unchecked")
+    public AWMap<K, V> deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+        ObjectCodec codec = p.getCodec();
+        JsonNode root = codec.readTree(p);
+        ObjectMapper mapper = (ObjectMapper) p.getCodec();
+
+        AWMap<K, V> map = new AWMap<>();
+
+        // Parse items
+        JsonNode items = root.get("map");
+        if (items != null && items.isArray()) {
+            for (JsonNode item : items) {
+                K key = mapper.convertValue(item.get("key"), new TypeReference<>() {});
+                V value = (V) mapper.convertValue(item.get("value"), ICRDT.class);
+                Map<UUID, Integer> dots = mapper.convertValue(item.get("dots"),
+                        new TypeReference<>() {});
+
+                var entry = new AWMapEntry<>(key, value);
+                map.awSet.items.put(entry, dots);
+            }
+        }
+
+        // Parse version dots
+        JsonNode version = root.get("version");
+        if (version != null && version.isObject()) {
+            Map<UUID, Integer> versionDots =
+                    ((ObjectMapper) codec).convertValue(version, new TypeReference<>() {});
+            map.awSet.versionDots.putAll(versionDots);
+        }
+
+        return map;
+    }
+}
