@@ -1,4 +1,4 @@
-package edu.sdle;
+package edu.sdle.hashring;
 
 import net.jpountz.xxhash.XXHash64;
 import net.jpountz.xxhash.XXHashFactory;
@@ -12,7 +12,7 @@ public class HashRing {
     private static final long SEED = 0L;
 
     private final NavigableMap<Long, UUID> ring;
-    private final int vnodesPerNode;
+    private final int vnodesPerNode; // virtual nodes per physical node
 
     public HashRing(int vnodesPerNode) {
         ring = new TreeMap<>();
@@ -37,12 +37,17 @@ public class HashRing {
     /**
      * Add a node to the hash ring.
      * @param nodeId Unique ID of the node
+     * @return True if the node was not already in the ring
      */
-    public void addNode(UUID nodeId) {
+    public boolean addNode(UUID nodeId) {
+        if (ring.containsValue(nodeId))
+            return false;
+
         for (int i = 0; i < vnodesPerNode; i++) {
             long h = hashVNode(nodeId, i);
             ring.put(h, nodeId);
         }
+        return true;
     }
 
     /**
