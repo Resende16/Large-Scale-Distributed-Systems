@@ -3,6 +3,7 @@ package edu.sdle.hashring;
 import edu.sdle.crdt.ICRDT;
 import edu.sdle.crdt.collections.AWSet;
 
+import java.util.List;
 import java.util.UUID;
 
 /// A CRDT implementation of a hash ring
@@ -22,6 +23,16 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
      */
     public UUID getNode(UUID key) {
         return ring.getNode(key);
+    }
+
+    /**
+     * Get the first N distinct physical nodes responsible for a key.
+     * @param key Key to hash
+     * @param N Number of nodes to return
+     * @return An ArrayList of node IDs
+     */
+    public List<UUID> getNNodes(UUID key, int N) {
+        return ring.getNNodes(key, N);
     }
 
     /**

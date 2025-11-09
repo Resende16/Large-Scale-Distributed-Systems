@@ -3,9 +3,7 @@ package edu.sdle.hashring;
 import net.jpountz.xxhash.XXHash64;
 import net.jpountz.xxhash.XXHashFactory;
 
-import java.util.NavigableMap;
-import java.util.TreeMap;
-import java.util.UUID;
+import java.util.*;
 
 public class HashRing {
     private static final XXHash64 HASHER = XXHashFactory.fastestInstance().hash64();
@@ -20,7 +18,7 @@ public class HashRing {
     }
 
     /**
-     * Get the node associated with a key.
+     * Get the node responsible for a key.
      * @param key Key to hash
      * @return ID of a node, or null if the ring is empty
      */
@@ -32,6 +30,39 @@ public class HashRing {
         if (e == null) // wrap-around
             e = ring.firstEntry();
         return e.getValue();
+    }
+
+    /**
+     * Get the first N distinct physical nodes responsible for a key.
+     * @param key Key to hash
+     * @param N Number of nodes to return
+     * @return An ArrayList of node IDs
+     */
+    public List<UUID> getNNodes(UUID key, int N) {
+        if (ring.isEmpty())
+            return List.of();
+
+        long h = hashUUID(key);
+        var result = new ArrayList<UUID>(N);
+        var seen = new HashSet<UUID>();
+
+        var iter = ring.tailMap(h, true).entrySet().iterator();
+        var wrapped = false;
+
+        // if there are <N physical nodes, we do a full cycle
+        // from h to END, and then START to h
+        while (result.size() < N && (!wrapped || iter.hasNext())) {
+            if (!iter.hasNext()) {
+                iter = ring.headMap(h, false).entrySet().iterator();
+                wrapped = true;
+                continue;
+            }
+
+            var node = iter.next().getValue();
+            if (seen.add(node))
+                result.add(node);
+        }
+        return result;
     }
 
     /**
