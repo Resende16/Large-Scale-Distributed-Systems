@@ -1,52 +1,75 @@
 package edu.sdle.hashring;
 
+import edu.sdle.Node;
 import edu.sdle.crdt.ICRDT;
-import edu.sdle.crdt.collections.AWSet;
+import edu.sdle.crdt.collections.AWMap;
+import edu.sdle.crdt.lww.LWWRegister;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 /// A CRDT implementation of a hash ring
 public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     private final HashRing ring;
-    private final AWSet<UUID> members;
+    private final AWMap<UUID, LWWRegister<String>> members; // ID -> ip:port
 
     public DistributedHashRing(int vnodesPerNode) {
         ring = new HashRing(vnodesPerNode);
-        members = new AWSet<>();
+        members = new AWMap<>();
     }
 
     /**
      * Get the node associated with a key.
      * @param key Key to hash
-     * @return ID of a node, or null if the ring is empty
+     * @return A Node object, or null if the ring is empty
      */
-    public UUID getNode(UUID key) {
-        return ring.getNode(key);
+    public Node getNode(UUID key) {
+        var nodeId = ring.getNode(key);
+        if (nodeId == null)
+            return null;
+
+        var netAddress = members.get(nodeId);
+        return new Node(nodeId, netAddress.value());
     }
 
     /**
      * Get the first N distinct physical nodes responsible for a key.
      * @param key Key to hash
      * @param N Number of nodes to return
-     * @return An ArrayList of node IDs
+     * @return An ArrayList of Node objects
      */
-    public List<UUID> getNNodes(UUID key, int N) {
-        return ring.getNNodes(key, N);
+    public List<Node> getNNodes(UUID key, int N) {
+        var nodeIds = ring.getNNodes(key, N);
+        List<Node> nodes = new ArrayList<>(nodeIds.size());
+
+        for (var id : nodeIds)
+            nodes.add(new Node(id, members.get(id).value()));
+        return nodes;
     }
 
     /**
-     * Add a node to the hash ring.
-     * @param nodeToAdd ID of the node to be added
+     * Add a node in the hash ring. If a node with the same id is
+     * already in the ring, its network address will be updated.
+     * @param node Node to be added
      * @param issuerNode ID of the node who issued the operation
-     * @return True if the node was not already in the ring
      */
-    public boolean addNode(UUID nodeToAdd, UUID issuerNode) {
-        if (members.contains(nodeToAdd))
-            return false;
+    public void addNode(Node node, UUID issuerNode) {
+        var _node = members.get(node.getId());
 
-        members.add(nodeToAdd, issuerNode);
-        return ring.addNode(nodeToAdd);
+        if (_node != null) {
+            // Simply update the network address
+            if (!_node.value().equals(node.getNetAddress()))
+                _node.assign(_node.value(), issuerNode);
+        }
+        else {
+            members.put(node.getId(),
+                    new LWWRegister<>(node.getNetAddress(), issuerNode),
+                    issuerNode
+            );
+            ring.addNode(node.getId());
+        }
+
     }
 
     /**
@@ -89,18 +112,19 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     @Override
     public void merge(DistributedHashRing other) {
         // Merge membership set
-        var before = new java.util.HashSet<>(members.value());
+        var before = members.entrySet();
         members.merge(other.members);
+        var after = members.entrySet();
 
         // Merge actual ring
 
         for (var e : before) {
-            if (!members.contains(e)) // removed
-                ring.removeNode(e);
+            if (!after.contains(e)) // removed
+                ring.removeNode(e.key());
         }
-        for (var e : members.value()) {
+        for (var e : after) {
             if (!before.contains(e)) // added
-                ring.addNode(e);
+                ring.addNode(e.key());
         }
     }
 }
