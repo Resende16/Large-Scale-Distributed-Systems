@@ -57,10 +57,9 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     public void addNode(Node node, UUID issuerNode) {
         var _node = members.get(node.getId());
 
-        if (_node != null) {
+        if (_node != null)
             // Simply update the network address
             _node.assign(node.getNetAddress(), issuerNode);
-        }
         else {
             members.put(node.getId(),
                     new LWWRegister<>(node.getNetAddress(), issuerNode),
