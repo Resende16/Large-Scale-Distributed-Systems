@@ -49,7 +49,7 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     }
 
     /**
-     * Add a node in the hash ring. If a node with the same id is
+     * Add a node to the hash ring. If a node with the same id is
      * already in the ring, its network address will be updated.
      * @param node Node to be added
      * @param issuerNode ID of the node who issued the operation
