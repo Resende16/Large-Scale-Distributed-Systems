@@ -73,6 +73,7 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     /**
      * Remove a node from the hash ring.
      * @param nodeToRemove Unique ID of the node
+     * @return True if the ring contained the element
      */
     public boolean removeNode(UUID nodeToRemove) {
         if (!members.remove(nodeToRemove))
