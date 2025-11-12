@@ -5,18 +5,22 @@ import edu.sdle.crdt.ICRDT;
 import edu.sdle.crdt.collections.AWMap;
 import edu.sdle.crdt.lww.LWWRegister;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
 /// A CRDT implementation of a hash ring
 public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     private final HashRing ring;
-    private final AWMap<UUID, LWWRegister<String>> members; // ID -> ip:port
+    private final AWMap<UUID, LWWRegister<String>> members;
+    private final String secretToken;
 
     public DistributedHashRing(int vnodesPerNode) {
         ring = new HashRing(vnodesPerNode);
         members = new AWMap<>();
+        secretToken = generateSecretToken();
     }
 
     /**
@@ -106,6 +110,26 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
      */
     public int nodeCount() {
         return ring.nodeCount();
+    }
+
+    /**
+     * Get the hash ring's secret token.
+     * @return Secret token as a String
+     */
+    public String getSecretToken() {
+        return secretToken;
+    }
+
+    /**
+     * Generate a secret 256-bit token, to be used when
+     * joining the ring and executing restricted requests
+     * @return Secret token as String
+     */
+    private static String generateSecretToken() {
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[32]; // 256-bit token
+        random.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     @Override
