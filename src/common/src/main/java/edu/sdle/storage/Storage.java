@@ -25,7 +25,7 @@ public interface Storage {
      * @param list Shopping list to add
      * @return True on success, false otherwise
      */
-    boolean add(ShoppingList list) throws IOException;
+    boolean put(ShoppingList list) throws IOException;
 
     /**
      * Remove a shopping list from storage.
