@@ -34,9 +34,9 @@ public class CommsManager {
         backupPool = Executors.newFixedThreadPool(noBackupWorkers, vfactory);
     }
 
-    public void init() {
+    public void init(String bindAddress) {
         running = true;
-        frontend.bind("tcp://*:5555");
+        frontend.bind("tcp://" + bindAddress);
         backend.bind("inproc://backend");
 
         // Start workers
