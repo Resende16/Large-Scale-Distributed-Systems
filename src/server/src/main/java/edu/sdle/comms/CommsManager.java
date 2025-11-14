@@ -19,6 +19,10 @@ public class CommsManager {
     private final int noWorkers;
     private boolean running = false;
 
+    static void main() {
+        new CommsManager(3, 3).init("*:5555");
+    }
+
     public CommsManager(int noWorkers, int noBackupWorkers) {
         context = new ZContext();
         this.noWorkers = noWorkers;
@@ -65,8 +69,12 @@ public class CommsManager {
 
             if (poller.pollin(1) && !freeWorkers.isEmpty()) {
                 ZMsg msg = ZMsg.recvMsg(frontend);
-                msg.push(freeWorkers.poll());
-                msg.send(backend);
+
+                // [identity][empty][type]
+                if (msg.size() >= 3) {
+                    msg.push(freeWorkers.poll());
+                    msg.send(backend);
+                }
             }
 
             // Poll messages from workers
