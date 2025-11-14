@@ -15,12 +15,10 @@ import java.util.UUID;
 public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     private final HashRing ring;
     private final AWMap<UUID, LWWRegister<String>> members;
-    private final String secretToken;
 
     public DistributedHashRing(int vnodesPerNode) {
         ring = new HashRing(vnodesPerNode);
         members = new AWMap<>();
-        secretToken = generateSecretToken();
     }
 
     /**
@@ -102,22 +100,6 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
      */
     public int vnodeCount() {
         return ring.vnodeCount();
-    }
-
-    /**
-     * Get the number of physical nodes in the ring.
-     * @return Number of nodes in the ring
-     */
-    public int nodeCount() {
-        return ring.nodeCount();
-    }
-
-    /**
-     * Get the hash ring's secret token.
-     * @return Secret token as a String
-     */
-    public String getSecretToken() {
-        return secretToken;
     }
 
     /**
