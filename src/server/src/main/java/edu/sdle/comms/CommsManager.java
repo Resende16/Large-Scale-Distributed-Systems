@@ -12,12 +12,16 @@ public class CommsManager {
     private final ZContext context;
     private final ZMQ.Socket frontend;
     private final ZMQ.Socket backend;
-    private final Queue<String> freeWorkers;
+    private final Queue<byte[]> freeWorkers;
     private final ExecutorService workerPool;
     private final ExecutorService backupPool;
 
     private final int noWorkers;
     private boolean running = false;
+
+    static void main() {
+        new CommsManager(3, 3).init("*:5555");
+    }
 
     public CommsManager(int noWorkers, int noBackupWorkers) {
         context = new ZContext();
@@ -41,7 +45,7 @@ public class CommsManager {
 
         // Start workers
         for (int i = 0; i < noWorkers; i++)
-            workerPool.submit(new Worker(context));
+            workerPool.submit(new Worker(context, backupPool, i));
 
         poll();
     }
@@ -65,7 +69,6 @@ public class CommsManager {
 
             if (poller.pollin(1) && !freeWorkers.isEmpty()) {
                 ZMsg msg = ZMsg.recvMsg(frontend);
-                msg.push("");
                 msg.push(freeWorkers.poll());
                 msg.send(backend);
             }
@@ -73,7 +76,7 @@ public class CommsManager {
             // Poll messages from workers
             if (poller.pollin(0)) {
                 ZMsg msg = ZMsg.recvMsg(backend);
-                var workerId = msg.pop().strhex();
+                var workerId = msg.pop().getData();
 
                 if (msg.size() == 1 && msg.pop().toString().equals("READY")) {
                     // Worker signaled READY
