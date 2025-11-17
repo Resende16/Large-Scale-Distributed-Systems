@@ -37,4 +37,9 @@ public class Node {
     public String getNetAddress() {
         return ip + ":" + port;
     }
+
+    // Get the Node's zmq tcp address as a string
+    public String getZMQAddress() {
+        return "tcp://" + ip + ":" + port;
+    }
 }
