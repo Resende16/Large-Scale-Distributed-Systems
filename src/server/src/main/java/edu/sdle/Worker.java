@@ -55,11 +55,9 @@ public class Worker implements Runnable {
 
                 // Get request type
                 var typeStr = msg.pop().toString();
-                RequestType type = RequestType.fromString(typeStr);
+                var type = RequestType.fromString(typeStr);
 
-                //Thread.sleep(10);
-
-                var reply = handleRequest(msg);
+                var reply = handleRequest(msg, type);
 
                 // Prepend identity and reply
                 reply.push("");
@@ -71,13 +69,44 @@ public class Worker implements Runnable {
         }
     }
 
-    private ZMsg handleRequest(ZMsg msg) {
+    private ZMsg handleRequest(ZMsg msg, RequestType type) {
+        // Validate message size + hand off to handler
+        switch (type) {
+            case GET -> {
+                if (!msg.isEmpty()) // key
+                    return handleGetRequest(msg);
+            }
+            case COORDINATE_GET -> {
+                if (!msg.isEmpty())
+                    return handleCoordinateGetRequest(msg);
+            }
+            case PUT -> {
+                if (msg.size() > 1) // key + val
+                    return handlePutRequest(msg);
+            }
+            case COORDINATE_PUT -> {
+                if (msg.size() > 1)
+                    return handleCoordinatePutRequest(msg);
+            }
+        }
+
+        // otherwise malformed
         ZMsg reply = new ZMsg();
-        reply.add("hello!");
+        reply.add("1");
         return reply;
     }
 
-    private ZMsg handleCoordinateGetRequest(UUID key) {
+    private ZMsg handleCoordinateGetRequest(ZMsg msg) {
+        return null;
+    }
+
+
+    private ZMsg handleCoordinatePutRequest(ZMsg msg) {
+        return null;
+    }
+
+
+        private ZMsg handleCoordinateGetRequest(UUID key) {
         List<Node> replicas = hashRing.getNNodes(key, N);
         int successes = 0;
         int attempted = 0;
@@ -106,19 +135,31 @@ public class Worker implements Runnable {
         return reply;
     }
 
-    // Existence of all fields should be checked by caller
+    private ZMsg handleCoordinatePutRequest(UUID key) {
+        return null;
+    }
+
+        // Existence of all fields should be checked by caller
     private ZMsg handleGetRequest(ZMsg msg) {
         var bytes = msg.pop().getData();
+        ZMsg reply = new ZMsg();
 
         if (bytes.length != 16) {
             // Invalid UUID
-            ZMsg reply = new ZMsg();
             reply.add("1");
             return reply;
         }
 
         UUID key = UUIDUtils.uuidFromBytes(bytes);
-        return handleGetRequest(key);
+        var payload = storage.getAsJson(key);
+
+        if (payload == null || payload.isEmpty())
+            reply.add("1"); // Failed
+        else {
+            reply.add("0"); // Success
+            reply.add(payload);
+        }
+        return reply;
     }
 
     // Existence of all fields should be checked by caller
@@ -167,7 +208,7 @@ public class Worker implements Runnable {
         var bytes = UUIDUtils.uuidToBytes(key);
         msg.add(bytes);
 
-        ZMQ.Socket socket = this.socket.get();
+        var socket = this.socket.get();
         //if (socket == null)
         //    return null;
 
@@ -183,7 +224,7 @@ public class Worker implements Runnable {
         msg.add(key.toString());
         msg.add(value);
 
-        ZMQ.Socket socket = this.socket.get();
+        var socket = this.socket.get();
         //if (socket == null)
         //    return null;
 
