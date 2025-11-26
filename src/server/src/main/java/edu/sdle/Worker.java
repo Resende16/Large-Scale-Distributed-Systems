@@ -175,23 +175,7 @@ public class Worker implements Runnable {
 
         String value = msg.pop().toString();
         UUID key = UUIDUtils.uuidFromBytes(bytes);
-        return handlePutRequest(key, value);
-    }
 
-    private ZMsg handleGetRequest(UUID key) {
-        ZMsg reply = new ZMsg();
-        String payload = storage.getAsJson(key);
-
-        if (payload == null || payload.isEmpty())
-            reply.add(FAILURE.toString());
-        else {
-            reply.add(SUCCESS.toString());
-            reply.add(payload);
-        }
-        return reply;
-    }
-
-    private ZMsg handlePutRequest(UUID key, String value) {
         ZMsg reply = new ZMsg();
 
         if (storage.putJson(key, value))
