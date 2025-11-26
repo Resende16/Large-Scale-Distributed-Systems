@@ -53,11 +53,7 @@ public class Worker implements Runnable {
                 byte[] clientId = msg.pop().getData();
                 msg.pop();
 
-                // Get request type
-                var typeStr = msg.pop().toString();
-                var type = RequestType.fromString(typeStr);
-
-                var reply = handleRequest(msg, type);
+                var reply = handleRequest(msg);
 
                 // Prepend identity and reply
                 reply.push("");
@@ -69,7 +65,14 @@ public class Worker implements Runnable {
         }
     }
 
-    private ZMsg handleRequest(ZMsg msg, RequestType type) {
+    private ZMsg handleRequest(ZMsg msg) {
+        var typeStr = msg.pop().toString();
+        var type = RequestType.fromString(typeStr);
+
+        if (type == null)
+            // Invalid type
+            return failureReply();
+
         // Validate message size + hand off to handler
         switch (type) {
             case GET -> {
@@ -90,10 +93,8 @@ public class Worker implements Runnable {
             }
         }
 
-        // otherwise malformed
-        ZMsg reply = new ZMsg();
-        reply.add("1");
-        return reply;
+        // Otherwise malformed
+        return failureReply();
     }
 
     private ZMsg handleCoordinateGetRequest(ZMsg msg) {
@@ -232,5 +233,13 @@ public class Worker implements Runnable {
         msg.send(socket);
 
         return ZMsg.recvMsg(socket);
+    }
+
+    // Represents a failure of some sort, i.e.
+    // the request did not succeed
+    private static ZMsg failureReply() {
+        ZMsg reply = new ZMsg();
+        reply.add("1");
+        return reply;
     }
 }
