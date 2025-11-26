@@ -1,6 +1,7 @@
 package edu.sdle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.sdle.comms.ReplyCode;
 import edu.sdle.comms.RequestType;
 import edu.sdle.hashring.DistributedHashRing;
 import edu.sdle.storage.FileStorage;
@@ -10,6 +11,8 @@ import org.zeromq.*;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+
+import static edu.sdle.comms.ReplyCode.*;
 
 public class Worker implements Runnable {
     private final ZContext context;
@@ -143,21 +146,20 @@ public class Worker implements Runnable {
         // Existence of all fields should be checked by caller
     private ZMsg handleGetRequest(ZMsg msg) {
         var bytes = msg.pop().getData();
-        ZMsg reply = new ZMsg();
 
-        if (bytes.length != 16) {
+        if (bytes.length != 16)
             // Invalid UUID
-            reply.add("1");
-            return reply;
-        }
+            return failureReply();
 
         UUID key = UUIDUtils.uuidFromBytes(bytes);
         var payload = storage.getAsJson(key);
 
+        ZMsg reply = new ZMsg();
+
         if (payload == null || payload.isEmpty())
-            reply.add("1"); // Failed
+            reply.add(FAILURE.toString());
         else {
-            reply.add("0"); // Success
+            reply.add(SUCCESS.toString());
             reply.add(payload);
         }
         return reply;
@@ -167,12 +169,9 @@ public class Worker implements Runnable {
     private ZMsg handlePutRequest(ZMsg msg) {
         var bytes = msg.pop().getData();
 
-        if (bytes.length != 16) {
+        if (bytes.length != 16)
             // Invalid UUID
-            ZMsg reply = new ZMsg();
-            reply.add("1");
-            return reply;
-        }
+            return failureReply();
 
         String value = msg.pop().toString();
         UUID key = UUIDUtils.uuidFromBytes(bytes);
@@ -184,9 +183,9 @@ public class Worker implements Runnable {
         String payload = storage.getAsJson(key);
 
         if (payload == null || payload.isEmpty())
-            reply.add("1"); // Failed
+            reply.add(FAILURE.toString());
         else {
-            reply.add("0"); // Success
+            reply.add(SUCCESS.toString());
             reply.add(payload);
         }
         return reply;
@@ -196,9 +195,9 @@ public class Worker implements Runnable {
         ZMsg reply = new ZMsg();
 
         if (storage.putJson(key, value))
-            reply.add("0");
+            reply.add(SUCCESS.toString());
         else
-            reply.add("1");
+            reply.add(FAILURE.toString());
         return reply;
     }
 
@@ -222,7 +221,9 @@ public class Worker implements Runnable {
     private ZMsg makePutRequest(Node node, UUID key, String value) {
         ZMsg msg = new ZMsg();
         msg.add(RequestType.PUT.toString());
-        msg.add(key.toString());
+
+        var bytes = UUIDUtils.uuidToBytes(key);
+        msg.add(bytes);
         msg.add(value);
 
         var socket = this.socket.get();
@@ -239,7 +240,7 @@ public class Worker implements Runnable {
     // the request did not succeed
     private static ZMsg failureReply() {
         ZMsg reply = new ZMsg();
-        reply.add("1");
+        reply.add(FAILURE.toString());
         return reply;
     }
 }

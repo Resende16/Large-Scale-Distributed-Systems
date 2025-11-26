@@ -19,6 +19,10 @@ public class CommsManager {
     private final int noWorkers;
     private boolean running = false;
 
+    static void main() {
+        new CommsManager(5, 3).init("*:5555");
+    }
+
     public CommsManager(int noWorkers, int noBackupWorkers) {
         context = new ZContext();
         this.noWorkers = noWorkers;

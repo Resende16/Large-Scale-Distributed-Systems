@@ -12,6 +12,6 @@ public enum RequestType {
                 return t;
             }
         }
-        throw new IllegalArgumentException("Unknown request type: " + type);
+        return null; // purposefully, to avoid an exception
     }
 }
