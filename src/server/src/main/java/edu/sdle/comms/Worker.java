@@ -1,9 +1,6 @@
-package edu.sdle;
+package edu.sdle.comms;
 
-import edu.sdle.comms.RequestHandler;
 import org.zeromq.*;
-
-import java.util.concurrent.*;
 
 public class Worker implements Runnable {
     private final ZContext context;

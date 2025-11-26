@@ -287,9 +287,6 @@ public class RequestHandler {
         msg.add(bytes);
 
         var socket = this.socket.get();
-        //if (socket == null)
-        //    return null;
-
         socket.connect(node.getZMQAddress());
         msg.send(socket);
 
@@ -305,9 +302,6 @@ public class RequestHandler {
         msg.add(value);
 
         var socket = this.socket.get();
-        //if (socket == null)
-        //    return null;
-
         socket.connect(node.getZMQAddress());
         msg.send(socket);
 
