@@ -102,18 +102,6 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
         return ring.vnodeCount();
     }
 
-    /**
-     * Generate a secret 256-bit token, to be used when
-     * joining the ring and executing restricted requests
-     * @return Secret token as String
-     */
-    private static String generateSecretToken() {
-        SecureRandom random = new SecureRandom();
-        byte[] bytes = new byte[32]; // 256-bit token
-        random.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
     @Override
     public void merge(DistributedHashRing other) {
         // Merge membership set
