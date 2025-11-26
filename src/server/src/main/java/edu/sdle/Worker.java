@@ -164,22 +164,17 @@ public class Worker implements Runnable {
         ZMsg msg = new ZMsg();
         msg.add(RequestType.GET.toString());
 
-        var bytes = UUIDUtils.uuidToBytes();
-        msg.add(key.toString());
+        var bytes = UUIDUtils.uuidToBytes(key);
+        msg.add(bytes);
 
         ZMQ.Socket socket = this.socket.get();
-        if (socket == null)
-            return null;
+        //if (socket == null)
+        //    return null;
 
         socket.connect(node.getZMQAddress());
         msg.send(socket);
 
-        // wait for reply
-        ZMsg reply = ZMsg.recvMsg(socket);
-
-        //socket.disconnect(node.getZMQAddress());
-
-        return reply;
+        return ZMsg.recvMsg(socket);
     }
 
     private ZMsg makePutRequest(Node node, UUID key, String value) {
@@ -189,15 +184,12 @@ public class Worker implements Runnable {
         msg.add(value);
 
         ZMQ.Socket socket = this.socket.get();
-        if (socket == null)
-            return null;
+        //if (socket == null)
+        //    return null;
 
         socket.connect(node.getZMQAddress());
         msg.send(socket);
 
-        ZMsg reply = ZMsg.recvMsg(socket);
-
-        //socket.disconnect(node.getZMQAddress());
-        return reply;
+        return ZMsg.recvMsg(socket);
     }
 }
