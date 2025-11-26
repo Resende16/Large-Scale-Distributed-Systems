@@ -2,6 +2,7 @@ package edu.sdle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.sdle.comms.ReplyCode;
+import edu.sdle.comms.ReplyUtils;
 import edu.sdle.comms.RequestType;
 import edu.sdle.hashring.DistributedHashRing;
 import edu.sdle.storage.FileStorage;
@@ -74,7 +75,7 @@ public class Worker implements Runnable {
 
         if (type == null)
             // Invalid type
-            return failureReply();
+            return ReplyUtils.failure();
 
         // Validate message size + hand off to handler
         switch (type) {
@@ -97,7 +98,7 @@ public class Worker implements Runnable {
         }
 
         // Otherwise malformed
-        return failureReply();
+        return ReplyUtils.failure();
     }
 
     private ZMsg handleCoordinateGetRequest(ZMsg msg) {
@@ -143,46 +144,36 @@ public class Worker implements Runnable {
         return null;
     }
 
-        // Existence of all fields should be checked by caller
     private ZMsg handleGetRequest(ZMsg msg) {
         var bytes = msg.pop().getData();
 
         if (bytes.length != 16)
             // Invalid UUID
-            return failureReply();
+            return ReplyUtils.failure();
 
-        UUID key = UUIDUtils.uuidFromBytes(bytes);
+        var key = UUIDUtils.uuidFromBytes(bytes);
         var payload = storage.getAsJson(key);
 
-        ZMsg reply = new ZMsg();
-
         if (payload == null || payload.isEmpty())
-            reply.add(FAILURE.toString());
-        else {
-            reply.add(SUCCESS.toString());
-            reply.add(payload);
-        }
-        return reply;
+            return ReplyUtils.failure();
+        else
+            return ReplyUtils.success(payload);
     }
 
-    // Existence of all fields should be checked by caller
     private ZMsg handlePutRequest(ZMsg msg) {
         var bytes = msg.pop().getData();
 
         if (bytes.length != 16)
             // Invalid UUID
-            return failureReply();
+            return ReplyUtils.failure();
 
-        String value = msg.pop().toString();
-        UUID key = UUIDUtils.uuidFromBytes(bytes);
-
-        ZMsg reply = new ZMsg();
+        var value = msg.pop().toString();
+        var key = UUIDUtils.uuidFromBytes(bytes);
 
         if (storage.putJson(key, value))
-            reply.add(SUCCESS.toString());
+            return ReplyUtils.success();
         else
-            reply.add(FAILURE.toString());
-        return reply;
+            return ReplyUtils.failure();
     }
 
     private ZMsg makeGetRequest(Node node, UUID key) {
@@ -218,13 +209,5 @@ public class Worker implements Runnable {
         msg.send(socket);
 
         return ZMsg.recvMsg(socket);
-    }
-
-    // Represents a failure of some sort, i.e.
-    // the request did not succeed
-    private static ZMsg failureReply() {
-        ZMsg reply = new ZMsg();
-        reply.add(FAILURE.toString());
-        return reply;
     }
 }
