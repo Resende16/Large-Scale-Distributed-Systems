@@ -39,4 +39,15 @@ public class ReplyUtils {
         msg.add(payload);
         return msg;
     }
+
+    // Parse a ZMsg reply message and return
+    // true if the request succeeded
+    public static boolean didSucceed(ZMsg reply) {
+        if (reply == null || reply.isEmpty())
+            return false;
+
+        var codeStr = reply.pop().toString();
+        var code = ReplyCode.fromCode(codeStr);
+        return code == SUCCESS;
+    }
 }

@@ -5,9 +5,7 @@ import edu.sdle.crdt.ICRDT;
 import edu.sdle.crdt.collections.AWMap;
 import edu.sdle.crdt.lww.LWWRegister;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,6 +13,10 @@ import java.util.UUID;
 public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     private final HashRing ring;
     private final AWMap<UUID, LWWRegister<String>> members;
+
+    public DistributedHashRing() {
+        this(1); // No virtual nodes
+    }
 
     public DistributedHashRing(int vnodesPerNode) {
         ring = new HashRing(vnodesPerNode);
