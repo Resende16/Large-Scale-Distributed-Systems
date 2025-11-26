@@ -1,6 +1,5 @@
 package edu.sdle.comms;
 
-
 import edu.sdle.Node;
 import edu.sdle.UUIDUtils;
 import edu.sdle.crdt.ICRDT;
