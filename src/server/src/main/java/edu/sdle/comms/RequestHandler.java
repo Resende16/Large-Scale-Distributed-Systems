@@ -11,8 +11,9 @@ import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
 
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -90,8 +91,6 @@ public class RequestHandler {
         return ReplyUtils.failure();
     }
 
-
-
     public ZMsg handleCoordinateGetRequest(ZMsg msg) {
         var bytes = msg.pop().getData();
 
@@ -99,8 +98,11 @@ public class RequestHandler {
             return ReplyUtils.failure();
 
         var key = UUIDUtils.uuidFromBytes(bytes);
-        List<Node> replicas = hashRing.getNNodes(key, N);
+        return handleCoordinateGetRequest(key);
+    }
 
+    public ZMsg handleCoordinateGetRequest(UUID key) {
+        Queue<Node> replicas = hashRing.getNNodes(key, N);
         if (replicas.isEmpty())
             return ReplyUtils.failure();
 
@@ -108,52 +110,61 @@ public class RequestHandler {
                 + sendTimeout
                 + recvTimeout;
 
-        int index = 0; // next node to contact
         int successes = 0;
         ShoppingList result = null;
 
         while (
-            // Continue if quorum is not met + timeout hasn't
-            // exceeded + there are replicas left to try
-                successes < R
-                        && System.currentTimeMillis() < deadline
-                        && index < replicas.size()
-        )
-        {
+            // Quorum not met
+            successes < R
+            // Timeout not exceeded
+            && System.currentTimeMillis() < deadline
+            // There's enough replicas to eventually succeed
+            && replicas.size() >= (R - successes)
+        ) {
+            // Minimum number of nodes to contact for a success
+            var noNodes = R - successes;
+
             List<Future<ZMsg>> futures = new ArrayList<>();
 
+            Node firstNode = replicas.poll();
+
             // Submit subrequests to backup pool (except 1)
-            for (int i = index; i < replicas.size(); i++) {
-                Node node = replicas.get(i);
+            for (int i=1; i < noNodes; ++i) {
+                Node node = replicas.poll();
                 var future = backupPool.submit(() -> makeGetRequest(node, key));
                 futures.add(future);
             }
 
-            // Make 1 subrequest inline as to spare workers
-            Node firstNode = replicas.get(index);
+            // Make 1 subrequest inline to spare workers
             var reply = makeGetRequest(firstNode, key);
-
             var value = handleGetReply(reply);
+
             if (value != null) {
                 if (result == null)
                     result = value;
                 else
                     result.merge(value);
-                successes++;
+                if (++successes >= R)
+                    break; // early success
+            }
+            else {
+                // Try another node preemptively?
+                //...
             }
 
             try {
                 // Collect responses from workers
                 for (Future<ZMsg> future : futures) {
                     var r = future.get(); // blocks
-
                     var v = handleGetReply(r);
+
                     if (v != null) {
                         if (result == null)
                             result = v;
                         else
                             result.merge(v);
-                        successes++;
+                        if (++successes >= R)
+                            break;
                     }
                 }
             } catch (Exception _) {}
@@ -213,34 +224,6 @@ public class RequestHandler {
 
 
 
-    public ZMsg handleCoordinateGetRequest(UUID key) {
-        List<Node> replicas = hashRing.getNNodes(key, N);
-        int successes = 0;
-        int attempted = 0;
-        ZMsg reply = new ZMsg();
-
-        for (Node node : replicas) {
-            if (successes >= R)
-                break;
-
-            String payload = null;
-            attempted++;
-
-            if (payload != null && !payload.isEmpty()) {
-                // On first success, add the success signal
-                if (successes == 0)
-                    reply.add("0");
-                reply.add(payload);
-                successes++;
-            }
-            // else failed: try next node until R successes or out of candidates
-        }
-        // If not enough successes, return a failure signal
-        if (successes == 0) {
-            reply.add("1"); // failure
-        }
-        return reply;
-    }
 
     public ZMsg handleCoordinatePutRequest(UUID key) {
         return null;

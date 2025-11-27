@@ -1,6 +1,5 @@
 package edu.sdle.comms;
 
-import edu.sdle.Worker;
 import org.zeromq.*;
 
 import java.util.LinkedList;
@@ -34,14 +33,14 @@ public class CommsManager {
         backupPool = Executors.newFixedThreadPool(noBackupWorkers, vfactory);
     }
 
-    public void init(String bindAddress) {
+    public void init(String bindAddress, RequestHandler handler) {
         running = true;
         frontend.bind("tcp://" + bindAddress);
         backend.bind("inproc://backend");
 
         // Start workers
         for (int i = 0; i < noWorkers; i++)
-            workerPool.submit(new Worker(context, backupPool, i));
+            workerPool.submit(new Worker(context, i, handler));
 
         poll();
     }
