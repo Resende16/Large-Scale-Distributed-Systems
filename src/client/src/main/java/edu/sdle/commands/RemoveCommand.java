@@ -1,4 +1,4 @@
 package edu.sdle.commands;
-//ncurses fazem 
+//ncurses fazem
 public class RemoveCommand {
 }
