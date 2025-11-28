@@ -1,8 +1,5 @@
 package edu.sdle;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-
 
 
 import edu.sdle.crdt.ShoppingList;
@@ -65,7 +62,7 @@ public class Client {
     //https://minecraft.fandom.com/wiki/Tutorials/Menu_screen- no copyright
     private void showMainMenu() {
         System.out.println();
-        System.out.println("§8==============================");
+        System.out.println("8==============================");
         System.out.println("§a   ShoppingList » Main Menu");
         System.out.println("§8==============================");
         System.out.println("§e 1§7) Create new list");
