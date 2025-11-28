@@ -31,6 +31,7 @@ public class Client {
         while (true) {
             showMainMenu();
             String choice = readLine();
+            //List minecraf based.
 
             switch (choice) {
                 case "1":
@@ -63,15 +64,19 @@ public class Client {
     // ----- UI helpers -----
 
     private void showMainMenu() {
-        System.out.println("\n=== MAIN MENU ===");
-        System.out.println("1) Create new shopping list");
-        System.out.println("2) Open shopping list by ID");
-        System.out.println("3) Show current list");
-        System.out.println("4) Manage items (add/remove/update)");
-        System.out.println("5) Save current list locally");
-        System.out.println("6) Sync / merge with another version");
-        System.out.println("0) Exit");
+        System.out.println();
+        System.out.println("§8==============================");
+        System.out.println("§a   ShoppingList » Main Menu");
+        System.out.println("§8==============================");
+        System.out.println("§e 1§7) Create new list");
+        System.out.println("§e 2§7) Open list by ID");
+        System.out.println("§e 3§7) Show current list");
+        System.out.println("§e 4§7) Manage items");
+        System.out.println("§e 5§7) Save current list");
+        System.out.println("§e 6§7) Sync / merge");
+        System.out.println("§e 0§7) Exit");
     }
+
 
     private String readLine() {
         System.out.print("> ");
