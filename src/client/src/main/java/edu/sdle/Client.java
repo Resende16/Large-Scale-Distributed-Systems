@@ -2,16 +2,112 @@ package edu.sdle;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Client {
-    static void main() {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        IO.println(String.format("Hello and welcome!"));
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            IO.println("i = " + i);
+
+
+import edu.sdle.crdt.ShoppingList;
+
+import java.util.Scanner;
+import java.util.UUID;
+
+
+public class Client {
+
+    private static final Scanner scanner = new Scanner(System.in);
+
+    private final UUID nodeId = UUID.randomUUID();
+
+    private ShoppingList currentList;
+
+    public static void main(String[] args) {
+        Client client = new Client();
+        client.run();
+    }
+
+    // Main loop
+    private void run() {
+        System.out.println("Welcome to the Shopping List client!");
+
+        while (true) {
+            showMainMenu();
+            String choice = readLine();
+
+            switch (choice) {
+                case "1":
+                    createNewList();
+                    break;
+                case "2":
+                    openListById();
+                    break;
+                case "3":
+                    showCurrentList();
+                    break;
+                case "4":
+                    manageItemsMenu();
+                    break;
+                case "5":
+                    saveCurrentList();
+                    break;
+                case "6":
+                    mergeWithOtherVersion();
+                    break;
+                case "0":
+                    System.out.println("Bye!");
+                    return;
+                default:
+                    System.out.println("Invalid option.");
+            }
         }
+    }
+
+    // ----- UI helpers -----
+
+    private void showMainMenu() {
+        System.out.println("\n=== MAIN MENU ===");
+        System.out.println("1) Create new shopping list");
+        System.out.println("2) Open shopping list by ID");
+        System.out.println("3) Show current list");
+        System.out.println("4) Manage items (add/remove/update)");
+        System.out.println("5) Save current list locally");
+        System.out.println("6) Sync / merge with another version");
+        System.out.println("0) Exit");
+    }
+
+    private String readLine() {
+        System.out.print("> ");
+        return scanner.nextLine().trim();
+    }
+
+    // ----- Operations to implement next -----
+
+    // Use new ShoppingList(name, user) with your User/creator
+    private void createNewList() {
+        // TODO: ask for list name, create ShoppingList, keep in currentList
+        // and print the list ID so it can be shared
+    }
+
+    private void openListById() {
+        // TODO: ask for UUID string, load JSON from disk/cloud, set currentList
+    }
+
+    private void showCurrentList() {
+        // TODO: print list name, ID, and all items with current/max quantities
+    }
+
+    private void manageItemsMenu() {
+        if (currentList == null) {
+            System.out.println("No list opened.");
+            return;
+        }
+        // TODO: sub‑menu: add item, remove item, inc/dec quantity
+    }
+
+    private void saveCurrentList() {
+        // TODO: serialize currentList.toJson() to a file (local persistence)
+    }
+
+    private void mergeWithOtherVersion() {
+        // TODO: load another ShoppingList (e.g. from another file/cloud),
+        // call currentList.merge(other), then save
     }
 }
