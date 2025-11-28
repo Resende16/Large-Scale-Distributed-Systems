@@ -83,11 +83,13 @@ public class Client {
     // Use new ShoppingList(name, user) with your User/creator
     private void createNewList() {
         // TODO: ask for list name, create ShoppingList, keep in currentList
+        // criar a nova instancia de list e retomar um id de list para ser shared
         // and print the list ID so it can be shared
     }
 
     private void openListById() {
         // TODO: ask for UUID string, load JSON from disk/cloud, set currentList
+        //abrir a list e o current fica setado
     }
 
     private void showCurrentList() {
