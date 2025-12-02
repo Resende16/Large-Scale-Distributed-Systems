@@ -14,6 +14,12 @@ public class Worker implements Runnable {
         this.handler = handler;
     }
 
+    @Override
+    public void run() {
+
+    }
+}
+/*
     public void run() {
         Thread.currentThread().setName("Worker-" + workerIndex);
 
@@ -42,3 +48,4 @@ public class Worker implements Runnable {
     }
 
 }
+*/

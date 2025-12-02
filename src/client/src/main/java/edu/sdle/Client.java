@@ -2,6 +2,7 @@ package edu.sdle;
 
 import edu.sdle.storage.FileStorage;
 
+import java.io.File;
 import java.util.Scanner;
 import java.util.UUID;
 
@@ -33,9 +34,8 @@ public class Client {
 
         this.user = new User(userId, userName);
 
-        String userDir = "./storage/" + user.id() + "/";
+        String userDir = "." + File.separator + "storage" + File.separator + user.id() + File.separator;
         this.storage = new FileStorage(userDir);
-
         this.commandHandler = new CommandHandler(this.storage, this.user);
         this.commandHandler.registerCommands();
     }

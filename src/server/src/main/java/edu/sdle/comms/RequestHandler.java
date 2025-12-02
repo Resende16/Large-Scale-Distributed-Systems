@@ -58,7 +58,8 @@ public class RequestHandler {
             return s;
         });
     }
-
+}
+/*
     public ZMsg handleRequest(ZMsg msg) {
         var typeStr = msg.pop().toString();
         var type = RequestType.fromString(typeStr);
@@ -290,3 +291,4 @@ public class RequestHandler {
         return ZMsg.recvMsg(socket);
     }
 }
+*/

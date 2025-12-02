@@ -13,20 +13,24 @@ public class FileStorage implements Storage {
     private final ObjectMapper mapper;
 
     public FileStorage() {
-        // Use current directory
         this("./");
     }
 
     public FileStorage(String dirName) {
+        if (!dirName.endsWith(File.separator)) {
+            dirName = dirName + File.separator;
+        }
         this.dirName = dirName;
         this.mapper = new ObjectMapper();
 
-        // Create directory if needed
-        File dir = new File(dirName);
-        if (!dir.exists())
-            dir.mkdir();
+        File dir = new File(this.dirName);
+        if (!dir.exists()) {
+            boolean ok = dir.mkdirs();
+            if (!ok) {
+                throw new RuntimeException("Failed to create storage directory: " + this.dirName);
+            }
+        }
     }
-
 
 
     public boolean put(ShoppingList list) throws IOException {
