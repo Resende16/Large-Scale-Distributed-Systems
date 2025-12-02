@@ -14,7 +14,7 @@ public class Client {
 
     public Client(String[] args) {
         String uidStr = null;
-        String userName = "Player"; // default name
+        String userName = "Gunão da Lista";
 
         for (String arg : args) {
             if (arg.startsWith("--uid=")) {

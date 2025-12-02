@@ -34,6 +34,7 @@ public class CommandHandler {
         registerCommand(new IncCommand());
         registerCommand(new DecCommand());
         registerCommand(new ShowCommand());
+        registerCommand(new CreateCommand());
 
 
     }
