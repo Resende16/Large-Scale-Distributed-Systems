@@ -8,25 +8,52 @@ import edu.sdle.crdt.collections.AWMap;
 import edu.sdle.storage.FileStorage;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 public class ShowCommand extends Command {
 
     public ShowCommand() {
-        super("/show", "Command to show the contents of a shopping list. Usage: /show <listId>");
+        super("/show", "Shows a shopping list or all lists. Usage: /show <listId> or /show all");
     }
 
     @Override
     public void execute(String commandStr, FileStorage userStorage, User user) {
         String[] parts = commandStr.split(" ");
         if (parts.length < 2) {
-            System.out.println("Usage: /show <listId>");
+            System.out.println("Usage: /show <listId> or /show all");
             return;
         }
 
+        if (parts[1].equalsIgnoreCase("all")) {
+            handleShowAll(userStorage);
+            return;
+        }
+
+        handleShowOne(parts[1], userStorage);
+    }
+
+    private void handleShowAll(FileStorage userStorage) {
+        try {
+            List<ShoppingList> lists = userStorage.getAll();
+            if (lists.isEmpty()) {
+                System.out.println("No shopping lists found.");
+                return;
+            }
+
+            System.out.println("Shopping lists:");
+            for (ShoppingList list : lists) {
+                System.out.println("  - " + list.getName() + " [" + list.getId() + "]");
+            }
+        } catch (IOException e) {
+            System.out.println("Error: failed to access storage: " + e.getMessage());
+        }
+    }
+
+    private void handleShowOne(String idStr, FileStorage userStorage) {
         UUID listId;
         try {
-            listId = UUID.fromString(parts[1]);
+            listId = UUID.fromString(idStr);
         } catch (IllegalArgumentException e) {
             System.out.println("Error: invalid <listId> format.");
             return;
@@ -59,3 +86,4 @@ public class ShowCommand extends Command {
         }
     }
 }
+
