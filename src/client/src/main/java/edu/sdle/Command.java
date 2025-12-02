@@ -22,5 +22,5 @@ public abstract class Command {
         return  description;
     }
 
-    public abstract void execute(String commandStr, FileStorage userStorage, UUID userId);
+    public abstract void execute(String commandStr, FileStorage userStorage, User user);
 }

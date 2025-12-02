@@ -1,6 +1,7 @@
 package edu.sdle.commands;
 
 import edu.sdle.Command;
+import edu.sdle.User;
 import edu.sdle.crdt.ShoppingList;
 import edu.sdle.storage.FileStorage;
 
@@ -14,7 +15,7 @@ public class RemoveCommand extends Command {
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, UUID userId) {
+    public void execute(String commandStr, FileStorage userStorage, User user) {
 
         String[] parts = commandStr.split(" ");
         if (parts.length < 3) {

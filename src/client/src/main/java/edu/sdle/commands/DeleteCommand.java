@@ -1,6 +1,7 @@
 package edu.sdle.commands;
 
 import edu.sdle.Command;
+import edu.sdle.User;
 import edu.sdle.storage.FileStorage;
 
 import java.util.UUID;
@@ -12,7 +13,7 @@ public class DeleteCommand extends Command {
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, UUID userId) {
+    public void execute(String commandStr, FileStorage userStorage, User user) {
         String[] parts = commandStr.split(" ");
         if (parts.length < 2) {
             System.out.println("Usage: /delete <listId>");

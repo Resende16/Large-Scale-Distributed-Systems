@@ -1,6 +1,7 @@
 package edu.sdle.commands;
 
 import edu.sdle.Command;
+import edu.sdle.User;
 import edu.sdle.crdt.ItemQuantity;
 import edu.sdle.crdt.ShoppingList;
 import edu.sdle.crdt.collections.AWMap;
@@ -16,7 +17,7 @@ public class ShowCommand extends Command {
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, UUID userId) {
+    public void execute(String commandStr, FileStorage userStorage, User user) {
         String[] parts = commandStr.split(" ");
         if (parts.length < 2) {
             System.out.println("Usage: /show <listId>");

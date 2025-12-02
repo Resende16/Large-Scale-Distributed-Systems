@@ -2,6 +2,7 @@ package edu.sdle.commands;
 
 
 import edu.sdle.Command;
+import edu.sdle.User;
 import edu.sdle.storage.FileStorage;
 
 import java.util.Map;
@@ -18,20 +19,14 @@ public class HelpCommand extends Command {
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, UUID userId) {
+    public void execute(String commandStr, FileStorage userStorage, User user) {
         System.out.println("--------------------------------------");
         System.out.println("Here's the list of server commands:");
 
-        // Versão com for-each clássico
         for (Map.Entry<String, Command> entry : commands.entrySet()) {
             Command cmd = entry.getValue();
             System.out.println(cmd.getName() + " - " + cmd.getDescription());
         }
-
-        // OU, se preferires Java 8+ com lambda:
-        // commands.forEach((key, cmd) ->
-        //         System.out.println(cmd.getName() + " - " + cmd.getDescription())
-        // );
 
         System.out.println("--------------------------------------");
     }

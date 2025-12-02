@@ -2,6 +2,7 @@ package edu.sdle.commands;
 
 
 import edu.sdle.Command;
+import edu.sdle.User;
 import edu.sdle.crdt.ShoppingList;
 import edu.sdle.storage.FileStorage;
 
@@ -16,7 +17,7 @@ public class DecCommand extends Command {
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, UUID userId) {
+    public void execute(String commandStr, FileStorage userStorage, User user) {
         String[] parts = commandStr.split(" ");
         if (parts.length < 4) {
             System.out.println("Usage: /Dec <item_name> <Dec_Value> <listId>");
@@ -40,7 +41,7 @@ public class DecCommand extends Command {
                 return;
             }
 
-            int done = list.decrementItem(itemName, decValue, userId);
+            int done = list.decrementItem(itemName, decValue, user.id());
 
             if (done == -1) {
                 System.out.println("Error: failed to decrease item quantity. Item may not exist or parameters are invalid.");

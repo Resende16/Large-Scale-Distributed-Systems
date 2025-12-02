@@ -13,12 +13,12 @@ public class CommandHandler {
     private final Map<String, Command> commands;
     private Command defaultCommand;
     private final Lock lock;
-    private final UUID userId;
+    private final User user;
     private final FileStorage userStorage;
 
-    public CommandHandler(FileStorage userStorage, UUID userId) {
+    public CommandHandler(FileStorage userStorage, User user) {
         this.userStorage= userStorage;
-        this.userId= userId;
+        this.user= user;
         this.commands = new HashMap<>();
         this.lock = new ReentrantLock();
     }
@@ -73,10 +73,10 @@ public class CommandHandler {
         try {
             if (commands.containsKey(commandName)) {
                 Command command = commands.get(commandName);
-                command.execute(commandStr,this.userStorage, this.userId);
+                command.execute(commandStr,this.userStorage, this.user);
             }
             else if (defaultCommand != null) {
-                defaultCommand.execute(commandStr,this.userStorage, this.userId);
+                defaultCommand.execute(commandStr,this.userStorage, this.user);
             }
         } finally {
             lock.unlock();

@@ -9,38 +9,45 @@ public class Client {
 
     private final FileStorage storage;
     private final CommandHandler commandHandler;
-    private final UUID userId;
+    private final User user;
 
     public Client(String[] args) {
         String uidStr = null;
+        String userName = "Player"; // default name
+
         for (String arg : args) {
             if (arg.startsWith("--uid=")) {
                 uidStr = arg.substring("--uid=".length());
+            } else if (arg.startsWith("--name=")) {
+                userName = arg.substring("--name=".length());
             }
         }
 
+        UUID userId;
         if (uidStr == null) {
-            this.userId = UUID.randomUUID();
+            userId = UUID.randomUUID();
             System.out.println("New user: " + userId);
         } else {
-            this.userId = UUID.fromString(uidStr);
+            userId = UUID.fromString(uidStr);
         }
 
-        String userDir = "./storage/" + userId + "/";
+        this.user = new User(userId, userName);
+
+        String userDir = "./storage/" + user.id() + "/";
         this.storage = new FileStorage(userDir);
 
-        this.commandHandler = new CommandHandler(this.storage,this.userId);
+        this.commandHandler = new CommandHandler(this.storage, this.user);
         this.commandHandler.registerCommands();
     }
 
     public void run() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Welcome. UID: " + userId);
+        System.out.println("Welcome. User: " + user.name() + " (" + user.id() + ")");
 
         while (true) {
             System.out.print("> ");
             String line = scanner.nextLine().trim();
-            if (line.equalsIgnoreCase("quit") ) {
+            if (line.equalsIgnoreCase("quit")) {
                 break;
             }
             if (!line.isEmpty()) {

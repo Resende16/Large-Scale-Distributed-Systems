@@ -1,5 +1,6 @@
 package edu.sdle.commands;
 import edu.sdle.Command;
+import edu.sdle.User;
 import edu.sdle.crdt.ItemQuantity;
 import edu.sdle.crdt.ShoppingList;
 import edu.sdle.storage.FileStorage;
@@ -17,7 +18,7 @@ public class AddCommand extends Command {
 
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage,UUID userId) {
+    public void execute(String commandStr, FileStorage userStorage, User user) {
 
         String[] parts = commandStr.split(" ");
         if (parts.length < 4) {
@@ -48,7 +49,7 @@ public class AddCommand extends Command {
                 System.out.println("Error: shopping list not found: " + listId);
                 return;
             }
-            boolean success = list.addItem(itemName, max, userId);
+            boolean success = list.addItem(itemName, max, user.id());
             if (!success) {
                 System.out.println("Error: failed to add item. Item may already exist or invalid parameters.");
                 return;

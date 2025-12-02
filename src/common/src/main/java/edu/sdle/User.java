@@ -11,12 +11,23 @@ public record User(UUID id, String name) {
         this(UUID.randomUUID(), name);
     }
 
+    @Override
+    public UUID id() {
+        return id;
+    }
+
+    @Override
+    public String name() {
+        return name;
+    }
+
     @JsonCreator
     public User(@JsonProperty("id") final UUID id,
                 @JsonProperty("name") final String name) {
         this.id = id;
         this.name = name;
     }
+
 
     @Override
     public String toString() {
