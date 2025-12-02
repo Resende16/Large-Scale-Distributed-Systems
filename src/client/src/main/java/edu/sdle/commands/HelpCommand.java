@@ -11,7 +11,7 @@ public class HelpCommand extends Command {
     private final Map<String, Command> commands;
 
     public HelpCommand(Map<String, Command> commands) {
-        super("/help", "Mostra a lista de comandos disponíveis");
+        super("/help", "Show commands list");
         this.commands = commands;
     }
 
