@@ -1,6 +1,5 @@
 package edu.sdle;
-import edu.sdle.commands.DefaultCommand;
-import edu.sdle.commands.HelpCommand;
+import edu.sdle.commands.*;
 import edu.sdle.storage.FileStorage;
 
 import java.util.HashMap;
@@ -29,6 +28,14 @@ public class CommandHandler {
 
         setDefaultCommand(new DefaultCommand());
         registerCommand(new HelpCommand(this.commands));
+        registerCommand(new AddCommand());
+        registerCommand(new RemoveCommand());
+        registerCommand(new DefaultCommand());
+        registerCommand(new IncCommand());
+        registerCommand(new DecCommand());
+        registerCommand(new ShowCommand());
+
+
     }
 
     public boolean registerCommand(Command command) {
@@ -66,10 +73,10 @@ public class CommandHandler {
         try {
             if (commands.containsKey(commandName)) {
                 Command command = commands.get(commandName);
-                command.execute(commandStr,this.userStorage);
+                command.execute(commandStr,this.userStorage, this.userId);
             }
             else if (defaultCommand != null) {
-                defaultCommand.execute(commandStr,this.userStorage);
+                defaultCommand.execute(commandStr,this.userStorage, this.userId);
             }
         } finally {
             lock.unlock();

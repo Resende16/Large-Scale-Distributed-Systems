@@ -51,7 +51,7 @@ public class DecCommand extends Command {
             if (done < decValue) {
                 System.out.println("Reached minimum quantity (0). Decreased only " + done);
             } else {
-                System.out.println("§aSuccessfully decreased §e" + itemName + " by" + done);
+                System.out.println("§aSuccessfully decreased e" + itemName + " by" + done);
             }
 
 
