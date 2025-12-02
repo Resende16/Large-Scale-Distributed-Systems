@@ -21,7 +21,7 @@ public class Client {
 
         if (uidStr == null) {
             this.userId = UUID.randomUUID();
-            System.out.println("Novo UID gerado: " + userId);
+            System.out.println("New user: " + userId);
         } else {
             this.userId = UUID.fromString(uidStr);
         }
@@ -29,7 +29,7 @@ public class Client {
         String userDir = "./storage/" + userId + "/";
         this.storage = new FileStorage(userDir);
 
-        this.commandHandler = new CommandHandler();
+        this.commandHandler = new CommandHandler(this.storage,this.userId);
         this.commandHandler.registerCommands();
     }
 

@@ -51,6 +51,85 @@ public class ShoppingList implements ICRDT<ShoppingList> {
         return items;
     }
 
+
+    @JsonIgnore
+    public boolean addItem(String itemName, int maxQuantity, UUID nodeId) {
+        if (itemName == null || itemName.isBlank())
+
+            return false;
+        if (maxQuantity <= 0)
+            return false;
+
+        ItemQuantity existing = items.get(itemName);
+        if (existing != null) {
+            return false;
+        }
+
+        ItemQuantity qty = new ItemQuantity(maxQuantity);
+        items.put(itemName, qty, nodeId);
+        return true;
+    }
+
+    @JsonIgnore
+    //TODO fix remove should have an UUID nodeId parameter
+    public boolean removeItem(String itemName) {
+        if (itemName == null || itemName.isBlank())
+            return false;
+
+        ItemQuantity existing = items.get(itemName);
+        if (existing == null)
+            return false;
+
+        return items.remove(itemName);
+    }
+
+    @JsonIgnore
+    public int incrementItem(String itemName, int amount, UUID nodeId) {
+        if (itemName == null || itemName.isBlank())
+            return -1;
+        if (amount <= 0)
+            return -1;
+
+        ItemQuantity qty = items.get(itemName);
+        if (qty == null)
+            return -1;
+
+        int i;
+        for (i = 0; i < amount; i++) {
+            if (qty.getCurrent() >= qty.getMax()) {
+                return i;
+            }
+            qty.inc(nodeId);
+        }
+        return i;
+    }
+
+
+    @JsonIgnore
+    public int decrementItem(String itemName, int amount, UUID nodeId) {
+        if (itemName == null || itemName.isBlank())
+            return -1;
+        if (amount <= 0)
+            return -1;
+
+        ItemQuantity qty = items.get(itemName);
+        if (qty == null)
+            return -1;
+
+        int i;
+        for (i = 0; i < amount; i++) {
+            if (qty.getCurrent() <= 0) {
+                return i;
+            }
+            qty.dec(nodeId);
+        }
+        return i;
+    }
+
+
+
+
+
     public void setName(String name, UUID node) {
         this.name.assign(name, node);
     }
