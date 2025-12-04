@@ -2,8 +2,6 @@ package edu.sdle.comms;
 
 import edu.sdle.Node;
 import edu.sdle.UUIDUtils;
-import edu.sdle.crdt.ICRDT;
-import edu.sdle.crdt.ShoppingList;
 import edu.sdle.hashring.DistributedHashRing;
 import edu.sdle.storage.Storage;
 import org.zeromq.SocketType;
@@ -13,7 +11,6 @@ import org.zeromq.ZMsg;
 
 import java.util.*;
 import java.util.List;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -24,25 +21,19 @@ public class RequestHandler {
 
     private final ThreadLocal<ZMQ.Socket> socket;
     private final int timeout;
-
     private final int N;
-    private final int R;
-    private final int W;
 
     public RequestHandler(ZContext context,
                           Storage storage,
                           DistributedHashRing hashRing,
                           ExecutorService backupPool,
-                          int timeout,
-                          int N, int R, int W) {
+                          int timeout, int N) {
         this.storage = storage;
         this.hashRing = hashRing;
         // The backup pool of threads is used for subrequests
         this.backupPool = backupPool;
         this.timeout = timeout;
         this.N = N;
-        this.R = R;
-        this.W = W;
 
         // Create thread-local socket for subrequests
         socket = ThreadLocal.withInitial(() -> {
