@@ -15,8 +15,7 @@ import java.util.*;
 import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 public class RequestHandler {
     private final Storage storage;
@@ -24,8 +23,7 @@ public class RequestHandler {
     private final ExecutorService backupPool;
 
     private final ThreadLocal<ZMQ.Socket> socket;
-    private final int sendTimeout;
-    private final int recvTimeout;
+    private final int timeout;
 
     private final int N;
     private final int R;
@@ -35,17 +33,13 @@ public class RequestHandler {
                           Storage storage,
                           DistributedHashRing hashRing,
                           ExecutorService backupPool,
-                          int sendTimeout,
-                          int recvTimeout,
+                          int timeout,
                           int N, int R, int W) {
         this.storage = storage;
         this.hashRing = hashRing;
         // The backup pool of threads is used for subrequests
         this.backupPool = backupPool;
-        // A successful request must take no more
-        // than send+recv timeout to complete
-        this.sendTimeout = sendTimeout;
-        this.recvTimeout = recvTimeout;
+        this.timeout = timeout;
         this.N = N;
         this.R = R;
         this.W = W;
@@ -53,8 +47,8 @@ public class RequestHandler {
         // Create thread-local socket for subrequests
         socket = ThreadLocal.withInitial(() -> {
             ZMQ.Socket s = context.createSocket(SocketType.DEALER);
-            s.setSendTimeOut(sendTimeout);
-            s.setReceiveTimeOut(recvTimeout);
+            s.setSendTimeOut(timeout);
+            s.setReceiveTimeOut(timeout);
             return s;
         });
     }
@@ -98,135 +92,103 @@ public class RequestHandler {
             return ReplyUtils.failure();
 
         var key = UUIDUtils.uuidFromBytes(bytes);
-        return handleCoordinateGetRequest(key);
-    }
 
-    public ZMsg handleCoordinateGetRequest(UUID key) {
-        Queue<Node> replicas = hashRing.getNNodes(key, N);
+        List<Node> replicas = hashRing.getNNodes(key, N);
         if (replicas.isEmpty())
             return ReplyUtils.failure();
 
-        var deadline = System.currentTimeMillis()
-                + sendTimeout
-                + recvTimeout;
+        CompletionService<ZMsg> completionService = new ExecutorCompletionService<>(backupPool);
 
-        int successes = 0;
-        ShoppingList result = null;
+        long deadline = System.currentTimeMillis() + timeout;
 
-        while (
-            // Quorum not met
-            successes < R
-            // Timeout not exceeded
-            && System.currentTimeMillis() < deadline
-            // There's enough replicas to eventually succeed
-            && replicas.size() >= (R - successes)
-        ) {
-            // Minimum number of nodes to contact for a success
-            var noNodes = R - successes;
+        // Submit to all replicas
+        for (Node node : replicas)
+            completionService.submit(() -> makeGetRequest(node, key));
 
-            List<Future<ZMsg>> futures = new ArrayList<>();
+        ZMsg response = null;
+        int responsesReceived = 0;
 
-            Node firstNode = replicas.poll();
+        // Wait for the first successful response
+        try {
+            while (responsesReceived < replicas.size()) {
+                long remaining = deadline - System.currentTimeMillis();
+                if (remaining <= 0)
+                    break; // timed out
 
-            // Submit subrequests to backup pool (except 1)
-            for (int i=1; i < noNodes; ++i) {
-                Node node = replicas.poll();
-                var future = backupPool.submit(() -> makeGetRequest(node, key));
-                futures.add(future);
-            }
+                Future<ZMsg> firstCompleted = completionService.poll(remaining, TimeUnit.MILLISECONDS);
+                if (firstCompleted == null)
+                    break; // also timed out
 
-            // Make 1 subrequest inline to spare workers
-            var reply = makeGetRequest(firstNode, key);
-            var value = handleGetReply(reply);
+                var r = firstCompleted.get();
+                responsesReceived++;
 
-            if (value != null) {
-                if (result == null)
-                    result = value;
-                else
-                    result.merge(value);
-                if (++successes >= R)
-                    break; // early success
-            }
-            else {
-                // Try another node preemptively?
-                //...
-            }
-
-            try {
-                // Collect responses from workers
-                for (Future<ZMsg> future : futures) {
-                    var r = future.get(); // blocks
-                    var v = handleGetReply(r);
-
-                    if (v != null) {
-                        if (result == null)
-                            result = v;
-                        else
-                            result.merge(v);
-                        if (++successes >= R)
-                            break;
-                    }
+                if (ReplyUtils.didSucceed(r)) {
+                    response = r;
+                    break; // success
                 }
-            } catch (Exception _) {}
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            return ReplyUtils.failure();
         }
 
-        if (successes < R || result == null)
+        if (response == null)
             return ReplyUtils.failure();
 
-        var payload = result.toJson();
-        if (payload == null)
-            return ReplyUtils.failure();
-
+        var payload = response.pop().toString();
         return ReplyUtils.success(payload);
     }
 
-    public static class Merger<T extends ICRDT<T>> {
-        private T obj;
 
-        public Merger(T obj) {
-            this.obj = obj;
+    public ZMsg handleCoordinatePutRequest(ZMsg msg) {
+        var bytes = msg.pop().getData();
+
+        if (bytes.length != 16)
+            return ReplyUtils.failure();
+
+        var key = UUIDUtils.uuidFromBytes(bytes);
+        var value = msg.pop().toString();
+
+        List<Node> replicas = hashRing.getNNodes(key, N);
+        if (replicas.isEmpty())
+            return ReplyUtils.failure();
+
+        CompletionService<ZMsg> completionService = new ExecutorCompletionService<>(backupPool);
+
+        long deadline = System.currentTimeMillis() + timeout;
+
+        // Submit to all replicas
+        for (Node node : replicas)
+            completionService.submit(() -> makePutRequest(node, key, value));
+
+        int successCount = 0;
+        int responsesReceived = 0;
+
+        // Wait for responses
+        try {
+            while (responsesReceived < replicas.size()) {
+                long remaining = deadline - System.currentTimeMillis();
+                if (remaining <= 0)
+                    break; // timed out
+
+                Future<ZMsg> firstCompleted = completionService.poll(remaining, TimeUnit.MILLISECONDS);
+                if (firstCompleted == null)
+                    break; // also timed out
+
+                var r = firstCompleted.get();
+                responsesReceived++;
+
+                if (ReplyUtils.didSucceed(r))
+                    successCount++;
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            return ReplyUtils.failure();
         }
 
-        public T get() {
-            return obj;
-        }
-
-        public void merge(T obj) {
-            if (this.obj == null)
-                this.obj = obj;
-            else
-                this.obj.merge(obj);
-        }
-    }
-
-    public ShoppingList handleGetReply(ZMsg reply) {
-        if (!ReplyUtils.didSucceed(reply) || reply.isEmpty())
-            return null;
-
-        String payload = reply.pop().toString();
-        return ShoppingList.fromJson(payload);
-    }
-
-
-    public boolean isSuccessResponse(ZMsg msg) {
-        if (msg == null || msg.isEmpty())
-            return false;
-
-        // Assuming first frame indicates success/failure
-        return msg.getFirst().toString().equals("SUCCESS");
-    }
-
-    public ZMsg resolveVersions(List<ZMsg> responses) {
-        return null;
-    }
-
-
-
-
-
-
-    public ZMsg handleCoordinatePutRequest(UUID key) {
-        return null;
+        // Return success if at least one replica succeeded
+        if (successCount > 0)
+            return ReplyUtils.success();
+        else
+            return ReplyUtils.failure();
     }
 
     public ZMsg handleGetRequest(ZMsg msg) {
