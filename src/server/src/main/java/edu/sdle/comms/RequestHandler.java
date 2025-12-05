@@ -10,7 +10,6 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
 
 import java.util.*;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -58,128 +57,14 @@ public class RequestHandler {
                 if (!msg.isEmpty()) // key
                     return handleGetRequest(msg);
             }
-            case COORDINATE_GET -> {
-                if (!msg.isEmpty())
-                    return handleCoordinateGetRequest(msg);
-            }
             case PUT -> {
                 if (msg.size() > 1) // key + val
                     return handlePutRequest(msg);
-            }
-            case COORDINATE_PUT -> {
-                if (msg.size() > 1)
-                    return handleCoordinatePutRequest(msg);
             }
         }
 
         // Otherwise malformed
         return ReplyUtils.failure();
-    }
-
-    public ZMsg handleCoordinateGetRequest(ZMsg msg) {
-        var bytes = msg.pop().getData();
-
-        if (bytes.length != 16)
-            return ReplyUtils.failure();
-
-        var key = UUIDUtils.uuidFromBytes(bytes);
-
-        List<Node> replicas = hashRing.getNNodes(key, N);
-        if (replicas.isEmpty())
-            return ReplyUtils.failure();
-
-        CompletionService<ZMsg> completionService = new ExecutorCompletionService<>(backupPool);
-
-        long deadline = System.currentTimeMillis() + timeout;
-
-        // Submit to all replicas
-        for (Node node : replicas)
-            completionService.submit(() -> makeGetRequest(node, key));
-
-        ZMsg response = null;
-        int responsesReceived = 0;
-
-        // Wait for the first successful response
-        try {
-            while (responsesReceived < replicas.size()) {
-                long remaining = deadline - System.currentTimeMillis();
-                if (remaining <= 0)
-                    break; // timed out
-
-                Future<ZMsg> firstCompleted = completionService.poll(remaining, TimeUnit.MILLISECONDS);
-                if (firstCompleted == null)
-                    break; // also timed out
-
-                var r = firstCompleted.get();
-                responsesReceived++;
-
-                if (ReplyUtils.didSucceed(r)) {
-                    response = r;
-                    break; // success
-                }
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            return ReplyUtils.failure();
-        }
-
-        if (response == null)
-            return ReplyUtils.failure();
-
-        var payload = response.pop().toString();
-        return ReplyUtils.success(payload);
-    }
-
-
-    public ZMsg handleCoordinatePutRequest(ZMsg msg) {
-        var bytes = msg.pop().getData();
-
-        if (bytes.length != 16)
-            return ReplyUtils.failure();
-
-        var key = UUIDUtils.uuidFromBytes(bytes);
-        var value = msg.pop().toString();
-
-        List<Node> replicas = hashRing.getNNodes(key, N);
-        if (replicas.isEmpty())
-            return ReplyUtils.failure();
-
-        CompletionService<ZMsg> completionService = new ExecutorCompletionService<>(backupPool);
-
-        long deadline = System.currentTimeMillis() + timeout;
-
-        // Submit to all replicas
-        for (Node node : replicas)
-            completionService.submit(() -> makePutRequest(node, key, value));
-
-        int successCount = 0;
-        int responsesReceived = 0;
-
-        // Wait for responses
-        try {
-            while (responsesReceived < replicas.size()) {
-                long remaining = deadline - System.currentTimeMillis();
-                if (remaining <= 0)
-                    break; // timed out
-
-                Future<ZMsg> firstCompleted = completionService.poll(remaining, TimeUnit.MILLISECONDS);
-                if (firstCompleted == null)
-                    break; // also timed out
-
-                var r = firstCompleted.get();
-                responsesReceived++;
-
-                if (ReplyUtils.didSucceed(r))
-                    successCount++;
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            return ReplyUtils.failure();
-        }
-
-        // Return success if at least one replica succeeded
-        if (successCount > 0)
-            return ReplyUtils.success();
-        else
-            return ReplyUtils.failure();
     }
 
     public ZMsg handleGetRequest(ZMsg msg) {
