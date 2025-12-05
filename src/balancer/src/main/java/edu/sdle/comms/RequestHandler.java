@@ -1,4 +1,3 @@
-
 package edu.sdle.comms;
 
 import edu.sdle.Node;
@@ -52,15 +51,18 @@ public class RequestHandler {
             // Invalid type
             return ReplyUtils.failure();
 
-        // Validate message size + hand off to handler
+        // Parse args + hand off to handler
         switch (type) {
             case GET -> {
-                if (!msg.isEmpty()) // key
-                    return handleGetRequest(msg);
+                var key = parseKey(msg);
+                if (key != null)
+                    return handleGetRequest(key);
             }
             case PUT -> {
-                if (msg.size() > 1) // key + val
-                    return handlePutRequest(msg);
+                var key = parseKey(msg);
+                var value = msg.pop();
+                if (key != null && value != null)
+                    return handlePutRequest(key, value.toString());
             }
         }
 
@@ -68,14 +70,19 @@ public class RequestHandler {
         return ReplyUtils.failure();
     }
 
-    public ZMsg handleGetRequest(ZMsg msg) {
+    public UUID parseKey(ZMsg msg) {
+        if (msg.isEmpty())
+            return null;
+
         var bytes = msg.pop().getData();
-
         if (bytes.length != 16)
-            return ReplyUtils.failure();
+            // Invalid UUID
+            return null;
 
-        var key = UUIDUtils.uuidFromBytes(bytes);
+        return UUIDUtils.uuidFromBytes(bytes);
+    }
 
+    public ZMsg handleGetRequest(UUID key) {
         List<Node> replicas = hashRing.getNNodes(key, N);
         if (replicas.isEmpty())
             return ReplyUtils.failure();
@@ -121,15 +128,7 @@ public class RequestHandler {
         return ReplyUtils.success(payload);
     }
 
-    public ZMsg handlePutRequest(ZMsg msg) {
-        var bytes = msg.pop().getData();
-
-        if (bytes.length != 16)
-            return ReplyUtils.failure();
-
-        var key = UUIDUtils.uuidFromBytes(bytes);
-        var value = msg.pop().toString();
-
+    public ZMsg handlePutRequest(UUID key, String value) {
         List<Node> replicas = hashRing.getNNodes(key, N);
         if (replicas.isEmpty())
             return ReplyUtils.failure();

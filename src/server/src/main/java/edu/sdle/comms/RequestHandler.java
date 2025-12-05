@@ -35,11 +35,10 @@ public class RequestHandler {
                 if (key != null && value != null)
                     return handlePutRequest(key, value.toString());
             }
-            // Otherwise malformed
-            default -> {
-                return ReplyUtils.failure();
-            }
         }
+
+        // Otherwise malformed
+        return ReplyUtils.failure();
     }
 
     public UUID parseKey(ZMsg msg) {
