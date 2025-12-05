@@ -11,7 +11,7 @@ public class ReplyUtils {
     // the request did not succeed
     public static ZMsg failure() {
         ZMsg msg = new ZMsg();
-        msg.add(FAILURE.toString());
+        msg.add(FAILURE.code());
         return msg;
     }
 
@@ -19,7 +19,7 @@ public class ReplyUtils {
     // no payload is attached to the reply
     public static ZMsg success() {
         ZMsg msg = new ZMsg();
-        msg.add(SUCCESS.toString());
+        msg.add(SUCCESS.code());
         return msg;
     }
 
@@ -27,7 +27,7 @@ public class ReplyUtils {
     // a payload as a String
     public static ZMsg success(String payload) {
         ZMsg msg = new ZMsg();
-        msg.add(SUCCESS.toString());
+        msg.add(SUCCESS.code());
         msg.add(payload);
         return msg;
     }
@@ -36,7 +36,7 @@ public class ReplyUtils {
     // a payload as a ZFrame
     public static ZMsg success(ZFrame payload) {
         ZMsg msg = new ZMsg();
-        msg.add(SUCCESS.toString());
+        msg.add(SUCCESS.code());
         msg.add(payload);
         return msg;
     }

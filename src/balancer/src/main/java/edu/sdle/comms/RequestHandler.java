@@ -7,7 +7,6 @@ import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
-import zmq.socket.reqrep.Rep;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,10 +34,11 @@ public class RequestHandler {
 
         // Create thread-local socket for subrequests
         socket = ThreadLocal.withInitial(() -> {
-            ZMQ.Socket s = context.createSocket(SocketType.DEALER);
+            ZMQ.Socket s = context.createSocket(SocketType.REQ);
             // send_timeout = t/N
-            s.setSendTimeOut(timeout / N);
             // recv_timeout = t - t/N = t - send_timeout
+            var tmpN = N == 1 ? 2 : N; // exception for N=1
+            s.setSendTimeOut(timeout / tmpN);
             s.setReceiveTimeOut(timeout - s.getSendTimeOut());
             return s;
         });

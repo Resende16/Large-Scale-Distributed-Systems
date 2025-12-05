@@ -1,26 +1,25 @@
 package edu.sdle.comms;
 
 public enum ReplyCode {
-    SUCCESS(0),
-    FAILURE(1);
-    //todo
+    SUCCESS("0"),
+    FAILURE("1");
 
-    private final int code;
+    private final String _code;
 
-    ReplyCode(int code) {
-        this.code = code;
+    ReplyCode(String code) {
+        _code = code;
     }
 
-    public int getCode() {
-        return code;
+    public String code() {
+        return _code;
     }
 
-    public static ReplyCode fromCode(int code) {
+    public static ReplyCode fromCode(String code) {
         for (ReplyCode replyCode : ReplyCode.values()) {
-            if (replyCode.getCode() == code) {
+            if (replyCode.code().equals(code)) {
                 return replyCode;
             }
         }
-        return FAILURE; // default
+        return FAILURE;
     }
 }
