@@ -7,6 +7,7 @@ import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
+import zmq.socket.reqrep.Rep;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,8 +36,10 @@ public class RequestHandler {
         // Create thread-local socket for subrequests
         socket = ThreadLocal.withInitial(() -> {
             ZMQ.Socket s = context.createSocket(SocketType.DEALER);
-            s.setSendTimeOut(timeout);
-            s.setReceiveTimeOut(timeout);
+            // send_timeout = t/N
+            s.setSendTimeOut(timeout / N);
+            // recv_timeout = t - t/N = t - send_timeout
+            s.setReceiveTimeOut(timeout - s.getSendTimeOut());
             return s;
         });
     }
@@ -115,34 +118,20 @@ public class RequestHandler {
             // Hash ring is empty?
             return ReplyUtils.failure();
 
-        CompletionService<ZMsg> completionService
-                = new ExecutorCompletionService<>(backupPool);
-
-        // Submit GET to all replicas
-        for (Node node : replicas)
-            completionService.submit(() -> makeGetRequest(node, key));
-
         long deadline = System.currentTimeMillis() + timeout;
 
-        // Wait for the first successful response
-        try {
-            while (System.currentTimeMillis() < deadline) {
-                long remaining = deadline - System.currentTimeMillis();
+        // Wait for the first successful response (sequential)
+        for (Node node : replicas) {
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0)
+                break; // Timed out
 
-                Future<ZMsg> completed = completionService.poll(remaining, MILLISECONDS);
-                if (completed == null)
-                    break; // Timed out
+            var reply = makeGetRequest(node, key);
 
-                ZMsg reply = completed.get();
-
-                if (ReplyUtils.didSucceed(reply) && !reply.isEmpty()) {
-                    var payload = reply.pop();
-                    return ReplyUtils.success(payload);
-                }
+            if (ReplyUtils.didSucceed(reply) && !reply.isEmpty()) {
+                var payload = reply.pop();
+                return ReplyUtils.success(payload);
             }
-        } catch (InterruptedException | ExecutionException e) {
-            //todo: Log
-            return ReplyUtils.failure();
         }
 
         return ReplyUtils.failure();
@@ -156,7 +145,7 @@ public class RequestHandler {
         CompletionService<ZMsg> completionService =
                 new ExecutorCompletionService<>(backupPool);
 
-        // Submit PUT to all replicas
+        // Submit PUT to all replicas concurrently
         for (Node node : replicas)
             completionService.submit(() -> makePutRequest(node, key, value));
 
