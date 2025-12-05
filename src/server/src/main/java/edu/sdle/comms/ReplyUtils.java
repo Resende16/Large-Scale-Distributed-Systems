@@ -1,5 +1,6 @@
 package edu.sdle.comms;
 
+import org.zeromq.ZFrame;
 import org.zeromq.ZMsg;
 
 import static edu.sdle.comms.ReplyCode.*;
@@ -32,8 +33,8 @@ public class ReplyUtils {
     }
 
     // A successful request that returns
-    // a payload as a byte array
-    public static ZMsg success(byte[] payload) {
+    // a payload as a ZFrame
+    public static ZMsg success(ZFrame payload) {
         ZMsg msg = new ZMsg();
         msg.add(SUCCESS.toString());
         msg.add(payload);

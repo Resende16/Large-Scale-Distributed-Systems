@@ -151,7 +151,7 @@ public class RequestHandler {
 
         long deadline = System.currentTimeMillis() + timeout;
 
-        // Wait for a success
+        // Wait for at least one success
         try {
             while (System.currentTimeMillis() < deadline) {
                 long remaining = deadline - System.currentTimeMillis();
