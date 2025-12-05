@@ -46,7 +46,7 @@
                     <outputDirectory>${project.parent.basedir}/build</outputDirectory>
                     <archive>
                         <manifest>
-                            <mainClass>edu.sdle.Server</mainClass>
+                            <mainClass>edu.sdle.Balancer</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
