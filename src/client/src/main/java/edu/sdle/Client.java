@@ -9,7 +9,6 @@ import java.util.UUID;
 
 public class Client {
 
-    private final Storage storage;
     private final CommandHandler commandHandler;
     private final User user;
 
@@ -36,8 +35,8 @@ public class Client {
         this.user = new User(userId, userName);
 
         String userDir = "." + File.separator + "storage" + File.separator + user.id() + File.separator;
-        this.storage = new FileStorage(userDir);
-        this.commandHandler = new CommandHandler(this.storage, this.user);
+        Storage storage = new FileStorage(userDir);
+        this.commandHandler = new CommandHandler(storage, this.user);
         this.commandHandler.registerCommands();
     }
 
