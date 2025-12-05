@@ -1,7 +1,6 @@
 package edu.sdle.comms;
 
 import edu.sdle.UUIDUtils;
-import edu.sdle.hashring.DistributedHashRing;
 import edu.sdle.storage.Storage;
 import org.zeromq.ZMsg;
 
@@ -10,11 +9,9 @@ import java.util.concurrent.*;
 
 public class RequestHandler {
     private final Storage storage;
-    private final DistributedHashRing hashRing;
 
-    public RequestHandler(Storage storage, DistributedHashRing hashRing) {
+    public RequestHandler(Storage storage) {
         this.storage = storage;
-        this.hashRing = hashRing;
     }
 
     public ZMsg handleRequest(ZMsg msg) {
