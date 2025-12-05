@@ -3,7 +3,6 @@ package edu.sdle.comms;
 import edu.sdle.Node;
 import edu.sdle.UUIDUtils;
 import edu.sdle.hashring.DistributedHashRing;
-import edu.sdle.storage.Storage;
 import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
@@ -13,8 +12,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.*;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 public class RequestHandler {
-    private final Storage storage;
     private final DistributedHashRing hashRing;
     private final ExecutorService backupPool;
 
@@ -23,11 +23,9 @@ public class RequestHandler {
     private final int N;
 
     public RequestHandler(ZContext context,
-                          Storage storage,
                           DistributedHashRing hashRing,
                           ExecutorService backupPool,
                           int timeout, int N) {
-        this.storage = storage;
         this.hashRing = hashRing;
         // The backup pool of threads is used for subrequests
         this.backupPool = backupPool;
@@ -82,96 +80,6 @@ public class RequestHandler {
         return UUIDUtils.uuidFromBytes(bytes);
     }
 
-    public ZMsg handleGetRequest(UUID key) {
-        List<Node> replicas = hashRing.getNNodes(key, N);
-        if (replicas.isEmpty())
-            return ReplyUtils.failure();
-
-        CompletionService<ZMsg> completionService = new ExecutorCompletionService<>(backupPool);
-
-        long deadline = System.currentTimeMillis() + timeout;
-
-        // Submit to all replicas
-        for (Node node : replicas)
-            completionService.submit(() -> makeGetRequest(node, key));
-
-        ZMsg response = null;
-        int responsesReceived = 0;
-
-        // Wait for the first successful response
-        try {
-            while (responsesReceived < replicas.size()) {
-                long remaining = deadline - System.currentTimeMillis();
-                if (remaining <= 0)
-                    break; // timed out
-
-                Future<ZMsg> firstCompleted = completionService.poll(remaining, TimeUnit.MILLISECONDS);
-                if (firstCompleted == null)
-                    break; // also timed out
-
-                var r = firstCompleted.get();
-                responsesReceived++;
-
-                if (ReplyUtils.didSucceed(r)) {
-                    response = r;
-                    break; // success
-                }
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            return ReplyUtils.failure();
-        }
-
-        if (response == null)
-            return ReplyUtils.failure();
-
-        var payload = response.pop().toString();
-        return ReplyUtils.success(payload);
-    }
-
-    public ZMsg handlePutRequest(UUID key, String value) {
-        List<Node> replicas = hashRing.getNNodes(key, N);
-        if (replicas.isEmpty())
-            return ReplyUtils.failure();
-
-        CompletionService<ZMsg> completionService = new ExecutorCompletionService<>(backupPool);
-
-        long deadline = System.currentTimeMillis() + timeout;
-
-        // Submit to all replicas
-        for (Node node : replicas)
-            completionService.submit(() -> makePutRequest(node, key, value));
-
-        int successCount = 0;
-        int responsesReceived = 0;
-
-        // Wait for responses
-        try {
-            while (responsesReceived < replicas.size()) {
-                long remaining = deadline - System.currentTimeMillis();
-                if (remaining <= 0)
-                    break; // timed out
-
-                Future<ZMsg> firstCompleted = completionService.poll(remaining, TimeUnit.MILLISECONDS);
-                if (firstCompleted == null)
-                    break; // also timed out
-
-                var r = firstCompleted.get();
-                responsesReceived++;
-
-                if (ReplyUtils.didSucceed(r))
-                    successCount++;
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            return ReplyUtils.failure();
-        }
-
-        // Return success if at least one replica succeeded
-        if (successCount > 0)
-            return ReplyUtils.success();
-        else
-            return ReplyUtils.failure();
-    }
-
     public ZMsg makeGetRequest(Node node, UUID key) {
         ZMsg msg = new ZMsg();
         msg.add(RequestType.GET.toString());
@@ -199,5 +107,79 @@ public class RequestHandler {
         msg.send(socket);
 
         return ZMsg.recvMsg(socket);
+    }
+
+    public ZMsg handleGetRequest(UUID key) {
+        List<Node> replicas = hashRing.getNNodes(key, N);
+        if (replicas.isEmpty())
+            // Hash ring is empty?
+            return ReplyUtils.failure();
+
+        CompletionService<ZMsg> completionService
+                = new ExecutorCompletionService<>(backupPool);
+
+        // Submit GET to all replicas
+        for (Node node : replicas)
+            completionService.submit(() -> makeGetRequest(node, key));
+
+        long deadline = System.currentTimeMillis() + timeout;
+
+        // Wait for the first successful response
+        try {
+            while (System.currentTimeMillis() < deadline) {
+                long remaining = deadline - System.currentTimeMillis();
+
+                Future<ZMsg> completed = completionService.poll(remaining, MILLISECONDS);
+                if (completed == null)
+                    break; // Timed out
+
+                ZMsg reply = completed.get();
+
+                if (ReplyUtils.didSucceed(reply) && !reply.isEmpty()) {
+                    var payload = reply.pop();
+                    return ReplyUtils.success(payload);
+                }
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            //todo: Log
+            return ReplyUtils.failure();
+        }
+
+        return ReplyUtils.failure();
+    }
+
+    public ZMsg handlePutRequest(UUID key, String value) {
+        List<Node> replicas = hashRing.getNNodes(key, N);
+        if (replicas.isEmpty())
+            return ReplyUtils.failure();
+
+        CompletionService<ZMsg> completionService =
+                new ExecutorCompletionService<>(backupPool);
+
+        // Submit PUT to all replicas
+        for (Node node : replicas)
+            completionService.submit(() -> makePutRequest(node, key, value));
+
+        long deadline = System.currentTimeMillis() + timeout;
+
+        // Wait for a success
+        try {
+            while (System.currentTimeMillis() < deadline) {
+                long remaining = deadline - System.currentTimeMillis();
+
+                Future<ZMsg> completed = completionService.poll(remaining, MILLISECONDS);
+                if (completed == null)
+                    break;
+
+                var r = completed.get();
+                if (ReplyUtils.didSucceed(r))
+                    return ReplyUtils.success();
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            //todo: Log
+            return ReplyUtils.failure();
+        }
+
+        return ReplyUtils.failure();
     }
 }
