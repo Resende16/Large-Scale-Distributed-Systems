@@ -4,7 +4,7 @@ package edu.sdle.commands;
 import edu.sdle.Command;
 import edu.sdle.User;
 import edu.sdle.crdt.ShoppingList;
-import edu.sdle.storage.FileStorage;
+import edu.sdle.storage.Storage;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -17,10 +17,10 @@ public class DecCommand extends Command {
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, User user) {
+    public void execute(String commandStr, Storage storage, User user) {
         String[] parts = commandStr.split(" ");
         if (parts.length < 4) {
-            System.out.println("Usage: /Dec <item_name> <Dec_Value> <listId>");
+            System.out.println("Usage: /dec <item_name> <dec_value> <list_id>");
             return;
         }
 
@@ -35,7 +35,7 @@ public class DecCommand extends Command {
         }
 
         try {
-            ShoppingList list = userStorage.get(listId);
+            ShoppingList list = storage.get(listId);
             if (list == null) {
                 System.out.println("Error: shopping list not found: " + listId);
                 return;
@@ -52,11 +52,11 @@ public class DecCommand extends Command {
             if (done < decValue) {
                 System.out.println("Reached minimum quantity (0). Decreased only " + done);
             } else {
-                System.out.println("§aSuccessfully decreased e" + itemName + " by" + done);
+                System.out.println("Successfully decreased e" + itemName + " by" + done);
             }
 
 
-            userStorage.put(list);
+            storage.put(list);
             System.out.println("[Storage] List saved.");
 
         } catch (IOException e) {

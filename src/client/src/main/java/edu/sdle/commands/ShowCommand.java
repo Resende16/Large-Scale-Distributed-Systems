@@ -5,7 +5,7 @@ import edu.sdle.User;
 import edu.sdle.crdt.ItemQuantity;
 import edu.sdle.crdt.ShoppingList;
 import edu.sdle.crdt.collections.AWMap;
-import edu.sdle.storage.FileStorage;
+import edu.sdle.storage.Storage;
 
 import java.io.IOException;
 import java.util.List;
@@ -14,28 +14,30 @@ import java.util.UUID;
 public class ShowCommand extends Command {
 
     public ShowCommand() {
-        super("/show", "Shows a shopping list or all lists. Usage: /show <listId> or /show all");
+        super("/show", "Shows a shopping list or all lists. Usage: /show <listId> or /show");
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, User user) {
+    public void execute(String commandStr, Storage storage, User user) {
         String[] parts = commandStr.split(" ");
-        if (parts.length < 2) {
-            System.out.println("Usage: /show <listId> or /show all");
+
+        if (parts.length == 1) {
+            handleShowAll(storage);
             return;
         }
 
         if (parts[1].equalsIgnoreCase("all")) {
-            handleShowAll(userStorage);
+            handleShowAll(storage);
             return;
         }
 
-        handleShowOne(parts[1], userStorage);
+        handleShowOne(parts[1], storage);
     }
 
-    private void handleShowAll(FileStorage userStorage) {
+
+    private void handleShowAll(Storage storage) {
         try {
-            List<ShoppingList> lists = userStorage.getAll();
+            List<ShoppingList> lists = storage.getAll();
             if (lists.isEmpty()) {
                 System.out.println("No shopping lists found.");
                 return;
@@ -50,7 +52,7 @@ public class ShowCommand extends Command {
         }
     }
 
-    private void handleShowOne(String idStr, FileStorage userStorage) {
+    private void handleShowOne(String idStr, Storage storage) {
         UUID listId;
         try {
             listId = UUID.fromString(idStr);
@@ -60,7 +62,7 @@ public class ShowCommand extends Command {
         }
 
         try {
-            ShoppingList list = userStorage.get(listId);
+            ShoppingList list = storage.get(listId);
             if (list == null) {
                 System.out.println("Error: shopping list not found: " + listId);
                 return;

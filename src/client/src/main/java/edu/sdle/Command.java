@@ -1,6 +1,7 @@
 package edu.sdle;
 
 import edu.sdle.storage.FileStorage;
+import edu.sdle.storage.Storage;
 
 import java.util.UUID;
 
@@ -22,5 +23,5 @@ public abstract class Command {
         return  description;
     }
 
-    public abstract void execute(String commandStr, FileStorage userStorage, User user);
+    public abstract void execute(String commandStr, Storage Storage, User user);
 }

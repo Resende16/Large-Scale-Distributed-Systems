@@ -52,7 +52,7 @@ public class ShoppingList implements ICRDT<ShoppingList> {
     }
 
 
-    @JsonIgnore
+
     public boolean addItem(String itemName, int maxQuantity, UUID nodeId) {
         if (itemName == null || itemName.isBlank())
 
@@ -70,7 +70,7 @@ public class ShoppingList implements ICRDT<ShoppingList> {
         return true;
     }
 
-    @JsonIgnore
+
     //TODO fix remove should have an UUID nodeId parameter
     public boolean removeItem(String itemName) {
         if (itemName == null || itemName.isBlank())
@@ -83,7 +83,7 @@ public class ShoppingList implements ICRDT<ShoppingList> {
         return items.remove(itemName);
     }
 
-    @JsonIgnore
+
     public int incrementItem(String itemName, int amount, UUID nodeId) {
         if (itemName == null || itemName.isBlank())
             return -1;
@@ -95,17 +95,17 @@ public class ShoppingList implements ICRDT<ShoppingList> {
             return -1;
 
         int i;
+
         for (i = 0; i < amount; i++) {
-            if (qty.getCurrent() >= qty.getMax()) {
+            if(!qty.inc(nodeId)){
                 return i;
             }
-            qty.inc(nodeId);
         }
         return i;
     }
 
 
-    @JsonIgnore
+
     public int decrementItem(String itemName, int amount, UUID nodeId) {
         if (itemName == null || itemName.isBlank())
             return -1;
@@ -118,7 +118,7 @@ public class ShoppingList implements ICRDT<ShoppingList> {
 
         int i;
         for (i = 0; i < amount; i++) {
-            if (qty.getCurrent() <= 0) {
+            if(!qty.dec(nodeId)){
                 return i;
             }
             qty.dec(nodeId);

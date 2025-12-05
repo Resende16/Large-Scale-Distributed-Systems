@@ -3,19 +3,17 @@ package edu.sdle.commands;
 import edu.sdle.Command;
 import edu.sdle.User;
 import edu.sdle.crdt.ShoppingList;
-import edu.sdle.storage.FileStorage;
-
+import edu.sdle.storage.Storage;
 import java.io.IOException;
 import java.util.UUID;
 
-//ncurses fazem
 public class RemoveCommand extends Command {
     public RemoveCommand() {
         super("/remove", "Command to remove a new item of a  list. Usage: /remove <item_name> <listId>");
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, User user) {
+    public void execute(String commandStr, Storage storage, User user) {
 
         String[] parts = commandStr.split(" ");
         if (parts.length < 3) {
@@ -34,7 +32,7 @@ public class RemoveCommand extends Command {
             return;
         }
         try {
-            ShoppingList list = userStorage.get(listId);
+            ShoppingList list = storage.get(listId);
             if (list == null) {
                 System.out.println("Error: shopping list not found: " + listId);
                 return;
@@ -44,7 +42,7 @@ public class RemoveCommand extends Command {
                 System.out.println("Error: failed to remove item. Item may not exist.");
                 return;
             }
-            userStorage.put(list);
+            storage.put(list);
             System.out.println("[Storage] List saved.");
 
         } catch (IOException e) {

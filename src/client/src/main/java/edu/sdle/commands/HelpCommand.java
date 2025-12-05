@@ -4,6 +4,7 @@ package edu.sdle.commands;
 import edu.sdle.Command;
 import edu.sdle.User;
 import edu.sdle.storage.FileStorage;
+import edu.sdle.storage.Storage;
 
 import java.util.Map;
 
@@ -19,10 +20,8 @@ public class HelpCommand extends Command {
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, User user) {
+    public void execute(String commandStr, Storage storage, User user) {
         System.out.println("--------------------------------------");
-        System.out.println("Here's the list of server commands:");
-
         for (Map.Entry<String, Command> entry : commands.entrySet()) {
             Command cmd = entry.getValue();
             System.out.println(cmd.getName() + " - " + cmd.getDescription());

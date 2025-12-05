@@ -1,6 +1,7 @@
 package edu.sdle;
 
 import edu.sdle.storage.FileStorage;
+import edu.sdle.storage.Storage;
 
 import java.io.File;
 import java.util.Scanner;
@@ -8,7 +9,7 @@ import java.util.UUID;
 
 public class Client {
 
-    private final FileStorage storage;
+    private final Storage storage;
     private final CommandHandler commandHandler;
     private final User user;
 
@@ -42,7 +43,7 @@ public class Client {
 
     public void run() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Welcome. User: " + user.name() + " (" + user.id() + ")");
+        System.out.println("Welcome: \n " + user.name());
 
         while (true) {
             System.out.print("> ");

@@ -3,10 +3,9 @@ package edu.sdle.commands;
 import edu.sdle.Command;
 import edu.sdle.User;
 import edu.sdle.crdt.ShoppingList;
-import edu.sdle.storage.FileStorage;
+import edu.sdle.storage.Storage;
 
 import java.io.IOException;
-import java.util.UUID;
 
 public class CreateCommand extends Command {
 
@@ -15,7 +14,7 @@ public class CreateCommand extends Command {
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, User user) {
+    public void execute(String commandStr, Storage storage, User user) {
         String[] parts = commandStr.split(" ", 2);
         if (parts.length < 2 || parts[1].isBlank()) {
             System.out.println("Usage: /create <list_name>");
@@ -27,7 +26,7 @@ public class CreateCommand extends Command {
         try {
             ShoppingList list = new ShoppingList(listName, user);
 
-            userStorage.put(list);
+            storage.put(list);
 
             System.out.println("Created list: \"" + list.getName() + "\" [" + list.getId() + "]");
 

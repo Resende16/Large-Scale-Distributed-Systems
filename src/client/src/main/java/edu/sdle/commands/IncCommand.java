@@ -5,6 +5,7 @@ import edu.sdle.Command;
 import edu.sdle.User;
 import edu.sdle.crdt.ShoppingList;
 import edu.sdle.storage.FileStorage;
+import edu.sdle.storage.Storage;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -17,24 +18,24 @@ public class IncCommand extends Command {
     }
 
     @Override
-    public void execute(String commandStr, FileStorage userStorage, User user) {
-        String[] parts = commandStr.split(" ");
-        if (parts.length < 4) {
+    public void execute(String commandStr, Storage storage, User user) {
+        String[] args = commandStr.split(" ");
+        if (args.length < 4) {
             System.out.println("Usage: /inc <item_name> <inc_Value> <listId>");
             return;
         }
-        String itemName = parts[1];
-        int incValue = Integer.parseInt(parts[2]);
+        String itemName = args[1];
+        int incValue = Integer.parseInt(args[2]);
         UUID listId;
         try {
-            listId = UUID.fromString(parts[3]);
+            listId = UUID.fromString(args[3]);
         } catch (IllegalArgumentException e) {
             System.out.println("Error: invalid <listId> format.");
             return;
         }
 
         try {
-            ShoppingList list = userStorage.get(listId);
+            ShoppingList list = storage.get(listId);
             if (list == null) {
                 System.out.println("Error: shopping list not found: " + listId);
                 return;
@@ -54,7 +55,7 @@ public class IncCommand extends Command {
                 System.out.println("Successfully increased " + itemName + " by " + done);
             }
 
-            userStorage.put(list);
+            storage.put(list);
             System.out.println("[Storage] List saved.");
 
         } catch (IOException e) {
