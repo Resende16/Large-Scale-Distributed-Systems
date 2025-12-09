@@ -1,8 +1,10 @@
 package edu.sdle.comms;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.sdle.Node;
+import edu.sdle.ProxyState;
 import edu.sdle.UUIDUtils;
-import edu.sdle.hashring.DistributedHashRing;
 import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
@@ -15,29 +17,27 @@ import java.util.concurrent.*;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class RequestHandler {
-    private final DistributedHashRing hashRing;
-    private final ExecutorService backupPool;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    private final ProxyState proxyState;
+    private final ExecutorService backupPool;
     private final ThreadLocal<ZMQ.Socket> socket;
-    private final int timeout;
-    private final int N;
 
     public RequestHandler(ZContext context,
-                          DistributedHashRing hashRing,
-                          ExecutorService backupPool,
-                          int timeout, int N) {
-        this.hashRing = hashRing;
-        // The backup pool of threads is used for subrequests
+                          ProxyState proxyState,
+                          ExecutorService backupPool) {
+        this.proxyState = proxyState;
         this.backupPool = backupPool;
-        this.timeout = timeout;
-        this.N = N;
 
-        // Create thread-local socket for subrequests
+        // Create thread-local socket for server requests
         socket = ThreadLocal.withInitial(() -> {
+            var N = proxyState.getN();
+            var tmpN = N == 1 ? 2 : N;
+            var timeout = proxyState.getTimeout();
+
+            // Send timeout is set such that a GET can
+            // succeed even if N-1 replicas are down
             ZMQ.Socket s = context.createSocket(SocketType.REQ);
-            // send_timeout = t/N
-            // recv_timeout = t - t/N = t - send_timeout
-            var tmpN = N == 1 ? 2 : N; // exception for N=1
             s.setSendTimeOut(timeout / tmpN);
             s.setReceiveTimeOut(timeout - s.getSendTimeOut());
             return s;
@@ -64,6 +64,9 @@ public class RequestHandler {
                 var value = msg.pop();
                 if (key != null && value != null)
                     return handlePutRequest(key, value.toString());
+            }
+            case STATE ->  {
+                return handleStateRequest();
             }
         }
 
@@ -113,6 +116,10 @@ public class RequestHandler {
     }
 
     public ZMsg handleGetRequest(UUID key) {
+        var N = proxyState.getN();
+        var timeout = proxyState.getTimeout();
+        var hashRing = proxyState.getHashRing();
+
         List<Node> replicas = hashRing.getNNodes(key, N);
         if (replicas.isEmpty())
             // Hash ring is empty?
@@ -138,6 +145,10 @@ public class RequestHandler {
     }
 
     public ZMsg handlePutRequest(UUID key, String value) {
+        var N = proxyState.getN();
+        var timeout = proxyState.getTimeout();
+        var hashRing = proxyState.getHashRing();
+
         List<Node> replicas = hashRing.getNNodes(key, N);
         if (replicas.isEmpty())
             return ReplyUtils.failure();
@@ -170,5 +181,15 @@ public class RequestHandler {
         }
 
         return ReplyUtils.failure();
+    }
+
+    public ZMsg handleStateRequest() {
+        try {
+            var json = MAPPER.writeValueAsString(proxyState);
+            return ReplyUtils.success(json);
+
+        } catch (JsonProcessingException _) {
+            return ReplyUtils.failure();
+        }
     }
 }
