@@ -9,7 +9,7 @@
         <version>dev</version>
     </parent>
 
-    <artifactId>balancer</artifactId>
+    <artifactId>proxy</artifactId>
     <version>dev</version>
     <packaging>jar</packaging>
 
@@ -51,7 +51,7 @@
                     <outputDirectory>${project.parent.basedir}/build</outputDirectory>
                     <archive>
                         <manifest>
-                            <mainClass>edu.sdle.Balancer</mainClass>
+                            <mainClass>edu.sdle.Proxy</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

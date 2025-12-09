@@ -12,7 +12,7 @@
         <module>client</module>
         <module>server</module>
         <module>common</module>
-        <module>balancer</module>
+        <module>proxy</module>
     </modules>
 
     <properties>

@@ -25,10 +25,10 @@ public class Server {
     }
 
     private static void printArgList() {
-        System.out.println("--------------------------");
-        System.out.println("--address <string> >> Specify the server's address as ip:port.");
-        System.out.println("--worker-threads <int> >> Specify the number of worker threads.");
-        System.out.println("--------------------------");
+        System.out.println("-".repeat(50));
+        System.out.printf("%-25s %s%n", "--address <ip:port>", "Address of the node");
+        System.out.printf("%-25s %s%n", "--worker-threads <int>", "Number of worker threads");
+        System.out.println("-".repeat(50));
     }
 
     private static boolean parseArgs(String[] args, List<String> proxies) {
@@ -59,7 +59,7 @@ public class Server {
                     try {
                         workerThreads = Integer.parseInt(args[++i]);
                     } catch (NumberFormatException e) {
-                        System.err.println("Invalid worker thread count (" + args[i] + "), provide an integer!");
+                        System.err.println("Invalid worker thread count (" + args[i] + ")!");
                         return false;
                     }
                 }
