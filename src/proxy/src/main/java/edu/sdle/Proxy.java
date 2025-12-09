@@ -9,7 +9,7 @@ public class Proxy {
     private static int backupThreads = 4;
 
     // Needed only when creating a new hash ring
-    private static int timeout = 3;
+    private static int timeout = 3000;
     private static int N = 2;
 
     static void main(String[] args) {
@@ -35,7 +35,7 @@ public class Proxy {
         System.out.printf("%-25s %s%n", "--address <ip:port>", "Address of the proxy");
         System.out.printf("%-25s %s%n", "--worker-threads <int>", "Number of worker threads");
         System.out.printf("%-25s %s%n", "--backup-threads <int>", "Number of backup threads");
-        System.out.printf("%-25s %s%n", "--timeout <int>", "Maximum time to process a client request");
+        System.out.printf("%-25s %s%n", "--timeout <ms>", "Maximum time to process a client request");
         System.out.printf("%-25s %s%n", "--vnodes <int>", "Number of virtual nodes per physical node");
         System.out.printf("%-25s %s%n", "--N <int>", "Replication factor for each data item");
         System.out.println("-".repeat(50));
