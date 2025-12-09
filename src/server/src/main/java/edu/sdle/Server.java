@@ -1,17 +1,82 @@
 package edu.sdle;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Server {
-    static void main() {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        IO.println(String.format("Hello and welcome!"));
+import java.util.List;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            IO.println("i = " + i);
+public class Server {
+
+    private static String address = null;
+    private static int workerThreads = 4;
+
+    static void main(String[] args) {
+        var proxies = ProxyRegistry.getInstance().getProxyAddresses();
+
+        // Parse user-provided args
+        if (!parseArgs(args, proxies))
+            return;
+
+        // Print server parameters
+        System.out.println("--------------------------");
+        System.out.println("Server parameters:");
+        System.out.println("Address: " + address);
+        System.out.println("Worker threads: " + workerThreads);
+        System.out.println("--------------------------");
+
+        //todo
+    }
+
+    private static void printArgList() {
+        System.out.println("--------------------------");
+        System.out.println("--address <string> >> Specify the server's address as ip:port.");
+        System.out.println("--worker-threads <int> >> Specify the number of worker threads.");
+        System.out.println("--------------------------");
+    }
+
+    private static boolean parseArgs(String[] args, List<String> proxies) {
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+
+            switch (arg) {
+                case "--help" -> {
+                    printArgList();
+                    return false;
+                }
+                case "--address" -> {
+                    address = args[++i];
+
+                    // Invalid address
+                    if (!address.contains(":")) {
+                        System.err.println("Invalid address '" + address + "', missing colon!");
+                        return false;
+                    }
+
+                    // Reserved address
+                    if (proxies.contains(address)) {
+                        System.err.println("This address belongs to a known proxy and cannot be used by a server!");
+                        return false;
+                    }
+                }
+                case "--worker-threads" -> {
+                    try {
+                        workerThreads = Integer.parseInt(args[++i]);
+                    } catch (NumberFormatException e) {
+                        System.err.println("Invalid worker thread count (" + args[i] + "), provide an integer!");
+                        return false;
+                    }
+                }
+                default -> {
+                    System.out.println("Unknown argument " + arg + " skipped!");
+                    ++i;
+                }
+            }
         }
+
+        // Address not provided
+        if (address == null) {
+            System.err.println("Address not specified, use --address!");
+            System.err.println("You may use --help for a list of arguments.");
+            return false;
+        }
+
+        return true;
     }
 }
