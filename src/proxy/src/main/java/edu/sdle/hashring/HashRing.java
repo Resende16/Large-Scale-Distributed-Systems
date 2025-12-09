@@ -117,6 +117,14 @@ public class HashRing {
         return new HashSet<>(ring.values()).size();
     }
 
+    /**
+     * Get the number of virtual nodes per physical node.
+     * @return Number of vnodes per physical node
+     */
+    public int getVnodesPerNode() {
+        return vnodesPerNode;
+    }
+
     @Override
     public String toString() {
         return "HashRing{nodes=" + nodeCount() + ", " +

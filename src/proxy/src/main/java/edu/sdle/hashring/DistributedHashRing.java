@@ -1,5 +1,8 @@
 package edu.sdle.hashring;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.sdle.Node;
 import edu.sdle.crdt.ICRDT;
 import edu.sdle.crdt.collections.AWMap;
@@ -11,16 +14,26 @@ import java.util.UUID;
 
 /// A CRDT implementation of a hash ring
 public class DistributedHashRing implements ICRDT<DistributedHashRing> {
-    private final HashRing ring;
-    private final AWMap<UUID, LWWRegister<String>> members;
-
-    public DistributedHashRing() {
-        this(1); // No virtual nodes
-    }
+    @JsonIgnore private final HashRing ring;
+    @JsonProperty private final AWMap<UUID, LWWRegister<String>> members;
 
     public DistributedHashRing(int vnodesPerNode) {
         ring = new HashRing(vnodesPerNode);
         members = new AWMap<>();
+    }
+
+    // Strictly for deserialization
+    @JsonCreator
+    private DistributedHashRing(
+            @JsonProperty("members") AWMap<UUID, LWWRegister<String>> members,
+            @JsonProperty("vnodes") int vnodes
+    ) {
+        this.members = members;
+        this.ring = new HashRing(vnodes);
+
+        for (var e : members.entrySet()) {
+            ring.addNode(e.key());
+        }
     }
 
     /**
@@ -102,6 +115,23 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
      */
     public int vnodeCount() {
         return ring.vnodeCount();
+    }
+
+    /**
+     * Get the number of physical nodes in the ring.
+     * @return Number of nodes in the ring
+     */
+    public int nodeCount() {
+        return ring.nodeCount();
+    }
+
+    /**
+     * Get the number of virtual nodes per physical node.
+     * @return Number of vnodes per physical node
+     */
+    @JsonProperty("vnodes")
+    public int getVnodesPerNode() {
+        return ring.getVnodesPerNode();
     }
 
     @Override
