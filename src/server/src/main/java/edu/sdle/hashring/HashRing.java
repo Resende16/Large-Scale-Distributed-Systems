@@ -114,7 +114,15 @@ public class HashRing {
      * @return Number of nodes in the ring
      */
     public int nodeCount() {
-        return new java.util.HashSet<>(ring.values()).size();
+        return new HashSet<>(ring.values()).size();
+    }
+
+    /**
+     * Get the number of virtual nodes per physical node.
+     * @return Number of vnodes per physical node
+     */
+    public int getVnodesPerNode() {
+        return vnodesPerNode;
     }
 
     @Override

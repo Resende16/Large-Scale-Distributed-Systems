@@ -1,17 +1,104 @@
 package edu.sdle;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Server {
-    static void main() {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        IO.println(String.format("Hello and welcome!"));
+import edu.sdle.comms.CommsManager;
+import edu.sdle.comms.Gossiper;
+import edu.sdle.comms.RequestHandler;
+import edu.sdle.storage.FileStorage;
+import edu.sdle.utils.RingUtils;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            IO.println("i = " + i);
-        }
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class Server {
+    static void main(String[] args) {
+        // Parse user args
+        ArgParser parser = new ArgParser();
+        if (!parser.parseArgs(args))
+            return;
+
+        // Create node state
+        var node = new Node(parser.id, parser.address);
+        var storage = new FileStorage("data/" + parser.id);
+        var hintStorage = new HintStorage("data/" + parser.id + "/hints");
+
+        var ring = Bootstrapper.bootstrap(parser.address, parser.vnodes, parser.R);
+        if (ring == null)
+            return; // Failed to bootstrap
+
+        // Add self to ring
+        ring.addNode(node, node.getId());
+
+        var state = new NodeState(ring, storage, hintStorage, node);
+
+        // Print node parameters
+        parser.printArgs();
+
+        var manager = new CommsManager(parser.workerThreads, parser.backupThreads);
+        var handler = new RequestHandler(state);
+
+        handler.registerRequests(manager.getContext(), manager.getBackupPool());
+        manager.init(parser.address, handler);
+
+        // Start gossiper
+        var gossiper = new Gossiper(manager.getContext(), state, parser.address);
+        gossiper.start();
+
+        // Main loop
+        loop(state, manager);
+
+        gossiper.shutdown();
+        manager.shutdown();
+    }
+
+    private static void loop(NodeState state, CommsManager manager) {
+        //System.out.println("Enter LEAVE to leave the ring and exit");
+        System.out.println("Enter EXIT to exit\n");
+
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            String input;
+
+            while (true) {
+                input = reader.readLine();
+
+                // Stop the node process
+                if ("EXIT".equals(input)) {
+                    System.out.println("\nExiting...");
+                    break;
+                }
+
+                // Simulate node being down
+                if ("FREEZE".equals(input)) {
+                    System.out.println("Freezing for 15 seconds!");
+                    manager.freeze();
+                }
+
+                // Leave the ring + exit
+                if ("LEAVE".equals(input)) {
+
+                    //todo: stop manager and gossip first!
+
+                    System.out.println("\nLeaving ring and exiting...");
+
+                    var oldRing = state.ring().copy();
+
+                    synchronized (state.ring()) {
+                        state.ring().removeNode(state.node().getId());
+                    }
+
+                    // Wait for gossip to propagate
+                    Thread.sleep(3000);
+
+                    // Transfer out keys
+                    RingUtils.transferKeys(oldRing,
+                            state.ring(),
+                            state.storage(),
+                            state.node()
+                    );
+                    break;
+                }
+            }
+        } catch (IOException | InterruptedException _) {}
     }
 }

@@ -67,6 +67,14 @@ public class AWSet<T> implements ICRDT<AWSet<T>> {
     }
 
     /**
+     * Get the size of the set.
+     * @return The size of the AWSet
+     */
+    public int size() {
+        return items.size();
+    }
+
+    /**
      * Merge a AWSet into this one.
      * @param other AWSet to merge with
      */

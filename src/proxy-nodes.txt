@@ -1,0 +1,3 @@
+tcp://localhost:6000
+tcp://localhost:6001
+tcp://localhost:6002

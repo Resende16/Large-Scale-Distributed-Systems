@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import edu.sdle.crdt.*;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -42,6 +43,26 @@ public class AWMap<K,V extends ICRDT<V>> implements ICRDT<AWMap<K, V>> {
 
     public Set<AWMapEntry<K,V>> entrySet() {
         return awSet.value();
+    }
+
+    public Set<K> keys() {
+        Set<K> keys = new HashSet<>();
+        for (var entry : awSet.value()) {
+            keys.add(entry.key());
+        }
+        return keys;
+    }
+
+    public Set<V> values() {
+        Set<V> values = new HashSet<>();
+        for (var entry : awSet.value()) {
+            values.add(entry.value());
+        }
+        return values;
+    }
+
+    public int size() {
+        return awSet.size();
     }
 
     // Merge a AWMap with this one

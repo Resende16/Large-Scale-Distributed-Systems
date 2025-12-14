@@ -1,41 +1,46 @@
 package edu.sdle.comms;
 
+import org.zeromq.ZFrame;
 import org.zeromq.ZMsg;
 
 import static edu.sdle.comms.ReplyCode.*;
 
 public class ReplyUtils {
 
-    // Represents a failure of some sort, i.e.
-    // the request did not succeed
-    public static ZMsg failure() {
+    private static ZMsg makeReply(ReplyCode code) {
         ZMsg msg = new ZMsg();
-        msg.add(FAILURE.toString());
+        msg.add(code.code());
         return msg;
     }
 
-    // Represents a successful request, where
-    // no payload is attached to the reply
+    public static ZMsg failure() {
+        return makeReply(FAILURE);
+    }
+
+    // Represents a request failure
+    public static ZMsg failure(ReplyCode code) {
+        return makeReply(code);
+    }
+
+    // Represents a successful request
     public static ZMsg success() {
-        ZMsg msg = new ZMsg();
-        msg.add(SUCCESS.toString());
-        return msg;
+        return makeReply(SUCCESS);
     }
 
     // A successful request that returns
     // a payload as a String
     public static ZMsg success(String payload) {
         ZMsg msg = new ZMsg();
-        msg.add(SUCCESS.toString());
+        msg.add(SUCCESS.code());
         msg.add(payload);
         return msg;
     }
 
     // A successful request that returns
-    // a payload as a byte array
-    public static ZMsg success(byte[] payload) {
+    // a payload as a ZFrame
+    public static ZMsg success(ZFrame payload) {
         ZMsg msg = new ZMsg();
-        msg.add(SUCCESS.toString());
+        msg.add(SUCCESS.code());
         msg.add(payload);
         return msg;
     }

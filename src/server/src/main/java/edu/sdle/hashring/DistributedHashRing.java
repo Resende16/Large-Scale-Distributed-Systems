@@ -1,26 +1,42 @@
 package edu.sdle.hashring;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.sdle.Node;
 import edu.sdle.crdt.ICRDT;
 import edu.sdle.crdt.collections.AWMap;
 import edu.sdle.crdt.lww.LWWRegister;
+import edu.sdle.utils.JsonUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /// A CRDT implementation of a hash ring
 public class DistributedHashRing implements ICRDT<DistributedHashRing> {
-    private final HashRing ring;
-    private final AWMap<UUID, LWWRegister<String>> members;
+    @JsonIgnore private final HashRing ring;
+    @JsonIgnore private final int R; // Replication factor
+    @JsonProperty public final AWMap<UUID, RingNode> members;
 
-    public DistributedHashRing() {
-        this(1); // No virtual nodes
-    }
-
-    public DistributedHashRing(int vnodesPerNode) {
+    public DistributedHashRing(int vnodesPerNode, int R) {
         ring = new HashRing(vnodesPerNode);
         members = new AWMap<>();
+        this.R = R;
+    }
+
+    // For deserialization
+    @JsonCreator
+    private DistributedHashRing(
+            @JsonProperty("members") AWMap<UUID, RingNode> members,
+            @JsonProperty("vnodes") int vnodes,
+            @JsonProperty("R") int R
+    ) {
+        this.R = R;
+        this.members = members;
+        this.ring = new HashRing(vnodes);
+
+        for (var e : members.entrySet()) {
+            ring.addNode(e.key());
+        }
     }
 
     /**
@@ -33,22 +49,27 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
         if (nodeId == null)
             return null;
 
-        var netAddress = members.get(nodeId);
-        return new Node(nodeId, netAddress.value());
+        var node = members.get(nodeId);
+        return new Node(nodeId, node.getZmqAddress());
+    }
+
+    // Shortcut, since distributed version contains R
+    public List<Node> getNNodes(UUID key) {
+        return getNNodes(key, R);
     }
 
     /**
      * Get the first N distinct physical nodes responsible for a key.
      * @param key Key to hash
      * @param N Number of nodes to return
-     * @return An ArrayList of Node objects
+     * @return A Set of Node objects
      */
     public List<Node> getNNodes(UUID key, int N) {
         var nodeIds = ring.getNNodes(key, N);
         List<Node> nodes = new ArrayList<>(nodeIds.size());
 
         for (var id : nodeIds)
-            nodes.add(new Node(id, members.get(id).value()));
+            nodes.add(new Node(id, members.get(id).getZmqAddress()));
         return nodes;
     }
 
@@ -61,12 +82,15 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     public void addNode(Node node, UUID issuerNode) {
         var _node = members.get(node.getId());
 
+        //mostly assuming node id is the same as the issuer
+        //since nodes can only add themselves
+
         if (_node != null)
             // Simply update the network address
-            _node.assign(node.getNetAddress(), issuerNode);
+            _node.updateAddress(node.getZMQAddress(), issuerNode);
         else {
             members.put(node.getId(),
-                    new LWWRegister<>(node.getNetAddress(), issuerNode),
+                    new RingNode(node.getId(), node.getZMQAddress()),
                     issuerNode
             );
             ring.addNode(node.getId());
@@ -102,6 +126,58 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
      */
     public int vnodeCount() {
         return ring.vnodeCount();
+    }
+
+    /**
+     * Get the number of physical nodes in the ring.
+     * @return Number of nodes in the ring
+     */
+    public int nodeCount() {
+        return ring.nodeCount();
+    }
+
+    /**
+     * Get the number of virtual nodes per physical node.
+     * @return Number of vnodes per physical node
+     */
+    @JsonProperty("vnodes")
+    public int getVnodesPerNode() {
+        return ring.getVnodesPerNode();
+    }
+
+    /**
+     * Get the replication factor of the distributed ring.
+     * @return Parameter R of the distributed hash ring
+     */
+    @JsonProperty("R")
+    public int getR() {
+        return R;
+    }
+
+    // could be a Set, but a List of more useful to the caller
+    @JsonIgnore
+    public List<Node> getNodes() {
+        List<Node> nodes = new ArrayList<>(members.size());
+
+        for (var entry : members.entrySet()) {
+            var nodeId = entry.key();
+            var node = entry.value();
+
+            nodes.add(new Node(nodeId, node.getZmqAddress()));
+        }
+
+        return nodes;
+    }
+
+    public RingNode getRingNode(UUID key) {
+        return members.get(key);
+    }
+
+    // Clever way to easily copy a distributed ring
+    //todo: Implement without relying on Json serialization
+    public DistributedHashRing copy() {
+        var jsonString = JsonUtils.toJson(this);
+        return JsonUtils.fromJson(jsonString, DistributedHashRing.class);
     }
 
     @Override

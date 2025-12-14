@@ -3,15 +3,17 @@ package edu.sdle.comms;
 public enum RequestType {
     GET,
     PUT,
-    COORDINATE_GET,
-    COORDINATE_PUT;
+    REPLICA_GET,
+    REPLICA_PUT,
+    STATE,
+    GOSSIP;
 
-    public static RequestType fromString(String type) {
+    public static RequestType parse(String type) {
         for (var t : RequestType.values()) {
             if (t.name().equalsIgnoreCase(type)) {
                 return t;
             }
         }
-        return null; // purposefully, to avoid an exception
+        return null;
     }
 }

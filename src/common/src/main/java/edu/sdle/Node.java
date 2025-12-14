@@ -1,5 +1,6 @@
 package edu.sdle;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class Node {
@@ -13,12 +14,14 @@ public class Node {
         this.port = port;
     }
 
-    public Node(UUID id, String addressString) {
+    public Node(UUID id, String zmqAddress) {
         this.id = id;
 
+        var addr = zmqAddress.replace("tcp://", "");
+
         // Parse network address
-        ip = addressString.split(":")[0];
-        port = Integer.parseInt(addressString.split(":")[1]);
+        ip = addr.split(":")[0];
+        port = Integer.parseInt(addr.split(":")[1]);
     }
 
     public UUID getId() {
@@ -41,5 +44,26 @@ public class Node {
     // Get the Node's zmq tcp address as a string
     public String getZMQAddress() {
         return "tcp://" + ip + ":" + port;
+    }
+
+    @Override
+    public String toString() {
+        return "Node(" + id + ", " + ip + ":" + port + ")";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
+
+        Node node = (Node) obj;
+        return id.equals(node.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

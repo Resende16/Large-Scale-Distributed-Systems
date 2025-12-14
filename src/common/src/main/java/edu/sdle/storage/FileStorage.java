@@ -1,73 +1,100 @@
 package edu.sdle.storage;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.sdle.utils.JsonUtils;
 import edu.sdle.crdt.ShoppingList;
 
 import java.io.*;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class FileStorage implements Storage {
-
-    private final String dirName;
-    private final ObjectMapper mapper;
+    private final File dir;
 
     public FileStorage() {
+        // Use current directory
         this("./");
     }
 
     public FileStorage(String dirName) {
-        if (!dirName.endsWith(File.separator)) {
+        if (!dirName.endsWith(File.separator))
             dirName = dirName + File.separator;
-        }
-        this.dirName = dirName;
-        this.mapper = new ObjectMapper();
 
-        File dir = new File(this.dirName);
-        if (!dir.exists()) {
-            boolean ok = dir.mkdirs();
-            if (!ok) {
-                throw new RuntimeException("Failed to create storage directory: " + this.dirName);
-            }
-        }
-    }
-
-
-    public boolean put(ShoppingList list) throws IOException {
-        File file = new File(dirName + list.getId().toString() + ".json");
-        mapper.writeValue(file, list);
-        return true;
-    }
-
-    public boolean remove(UUID id) {
-        File file = new File(dirName + id.toString() + ".json");
-        return file.exists() && file.delete();
-    }
-
-    public ShoppingList get(UUID id) throws IOException {
-        File file = new File(dirName + id.toString() +  ".json");
-        if (!file.exists())
-            return null;
-
-        return mapper.readValue(file, ShoppingList.class);
-    }
-
-    public ArrayList<ShoppingList> getAll() throws IOException {
-        ArrayList<ShoppingList> result = new ArrayList<>();
-
+        // Create directory if needed
         File dir = new File(dirName);
         if (!dir.exists())
-            return result;
+            dir.mkdirs();
 
-        File[] files = dir.listFiles();
+        this.dir = dir;
+    }
+
+    public ShoppingList getObj(UUID id) {
+        var file = new File(dir, id + ".json");
+        if (!file.exists()) {
+            return null;
+        }
+
+        return JsonUtils.fromJson(file, ShoppingList.class);
+    }
+
+    public String get(UUID id) {
+        File file = new File(dir, id + ".json");
+        if (!file.exists()) {
+            return null;
+        }
+
+        try {
+            return Files.readString(file.toPath());
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    public Set<UUID> getKeys() {
+        Set<UUID> keys = new HashSet<>();
+        var files = dir.listFiles((_, name) -> name.endsWith(".json"));
 
         if (files != null) {
             for (File file : files) {
-                // Filter for JSON files
-                if (file.getName().endsWith(".json"))
-                    result.add(mapper.readValue(file, ShoppingList.class));
+                var k = file.getName().replace(".json", "");
+                try {
+                    keys.add(UUID.fromString(k)); // convert key String to UUID
+                } catch (IllegalArgumentException _) {}
             }
         }
-        return result;
+
+        return keys;
+    }
+
+    public boolean put(UUID id, String value) {
+        var thisObj = JsonUtils.fromJson(value, ShoppingList.class);
+        if (thisObj == null)
+            return false;
+
+        return putObj(thisObj);
+    }
+
+    // private utility does not merge
+    private boolean _putObj(ShoppingList obj) {
+        var file = new File(dir, obj.getId() + ".json");
+        return JsonUtils.toJson(obj, file);
+    }
+
+    // public method does merge
+    public boolean putObj(ShoppingList obj) {
+        var currObj = getObj(obj.getId());
+
+        if (currObj != null) {
+            // Merge first, then put
+            currObj.merge(obj);
+            return _putObj(currObj);
+        } else
+            return _putObj(obj);
+    }
+
+    public boolean remove(UUID id) {
+        File file = new File(dir, id + ".json");
+        return file.exists() && file.delete();
     }
 }

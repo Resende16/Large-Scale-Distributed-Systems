@@ -2,35 +2,49 @@ package edu.sdle.storage;
 
 import edu.sdle.crdt.ShoppingList;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Set;
 import java.util.UUID;
 
 public interface Storage {
     /**
-     * Retrieve a shopping list from storage.
-     * @param id Unique id of the list
-     * @return A shopping list, or null if not found
+     * Get a value from storage, as a Json string.
+     * @param id Unique ID of the value
+     * @return A Json string, or null on fail
      */
-    ShoppingList get(UUID id) throws IOException;
+    String get(UUID id);
 
     /**
-     * Retrieve all shopping lists from storage.
-     * @return An array of shopping lists
+     * Get a Shopping List from storage.
+     * @param id Unique ID of the value
+     * @return A shopping list, or null on fail
      */
-    ArrayList<ShoppingList> getAll() throws IOException;
+    ShoppingList getObj(UUID id);
 
     /**
-     * Add or update a shopping list.
-     * @param list Shopping list to add
-     * @return True on success, false otherwise
+     * Get keys for all entries in storage.
+     * @return A Set of keys
      */
-    boolean put(ShoppingList list) throws IOException;
+    Set<UUID> getKeys();
 
     /**
-     * Remove a shopping list from storage.
-     * @param id Unique id of the list
-     * @return True on success, false otherwise
+     * Store an entry in storage, provided its Json string.
+     * @param key Key of the entry
+     * @param value A Json string to store
+     * @return True on success, false on fail
      */
-    boolean remove(UUID id) throws IOException;
+    boolean put(UUID key, String value);
+
+    /**
+     * Store a Shopping List in storage.
+     * @param obj A ShoppingList to store
+     * @return True on success, false on fail
+     */
+    boolean putObj(ShoppingList obj);
+
+    /**
+     * Delete an entry from storage.
+     * @param id Key of the entry
+     * @return True on success, false on fail
+     */
+    boolean remove(UUID id);
 }

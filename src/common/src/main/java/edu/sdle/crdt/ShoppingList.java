@@ -3,7 +3,6 @@ package edu.sdle.crdt;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.sdle.User;
 import edu.sdle.crdt.collections.AWMap;
@@ -139,23 +138,5 @@ public class ShoppingList implements ICRDT<ShoppingList> {
     public void merge(ShoppingList other) {
         name.merge(other.name);
         items.merge(other.items);
-    }
-
-    // Serialize a ShoppingList object to a Json string
-    public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
-
-    // Deserialize a ShoppingList object from a Json string
-    public static ShoppingList fromJson(String json) {
-        try {
-            return MAPPER.readValue(json, ShoppingList.class);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
     }
 }
