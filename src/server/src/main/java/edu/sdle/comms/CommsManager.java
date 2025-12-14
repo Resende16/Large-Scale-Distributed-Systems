@@ -1,24 +1,30 @@
 package edu.sdle.comms;
 
-import org.zeromq.*;
+import org.zeromq.SocketType;
+import org.zeromq.ZContext;
+import org.zeromq.ZMQ;
+import org.zeromq.ZMsg;
 
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 public class CommsManager {
     private final ZContext context;
     private final ZMQ.Socket frontend;
     private final ZMQ.Socket backend;
     private final Queue<byte[]> freeWorkers;
+
     private final ExecutorService workerPool;
-    private final ExecutorService backupPool;
+    private Thread pollerThread;
 
     private final int noWorkers;
     private boolean running = false;
 
-    public CommsManager(int noWorkers, int noBackupWorkers) {
+    public CommsManager(int noWorkers) {
         context = new ZContext();
         this.noWorkers = noWorkers;
         freeWorkers = new LinkedList<>();
@@ -27,31 +33,23 @@ public class CommsManager {
         frontend = context.createSocket(SocketType.ROUTER);
         backend = context.createSocket(SocketType.ROUTER);
 
-        // Create thread pools
+        // Create thread pool
         var vfactory = Thread.ofVirtual().factory();
         workerPool = Executors.newFixedThreadPool(noWorkers, vfactory);
-        backupPool = Executors.newFixedThreadPool(noBackupWorkers, vfactory);
     }
 
     public void init(String bindAddress, RequestHandler handler) {
         running = true;
-        frontend.bind("tcp://" + bindAddress);
+        frontend.bind(bindAddress);
         backend.bind("inproc://backend");
 
         // Start workers
         for (int i = 0; i < noWorkers; i++)
             workerPool.submit(new Worker(context, i, handler));
 
-        poll();
-    }
+        System.out.println("Server is listening on " + bindAddress);
 
-    public void shutdown() {
-        running = false;
-        backend.close();
-        frontend.close();
-        backupPool.shutdown();
-        workerPool.shutdown();
-        context.close();
+        pollerThread = Thread.ofVirtual().start(this::poll);
     }
 
     private void poll() {
@@ -88,5 +86,32 @@ public class CommsManager {
                 }
             }
         }
+    }
+
+    public void shutdown() {
+        running = false;
+        workerPool.shutdownNow();
+
+        // Wait for workers to finish
+        try {
+            if (!workerPool.awaitTermination(2, SECONDS))
+                System.err.println("Worker pool did not terminate in time!");
+
+            if (pollerThread != null)
+                pollerThread.join(2000);
+
+        } catch (InterruptedException _) {
+            Thread.currentThread().interrupt();
+        }
+
+        backend.setLinger(0);
+        frontend.setLinger(0);
+        backend.close();
+        frontend.close();
+        context.close();
+    }
+
+    public ZContext getContext() {
+        return context;
     }
 }

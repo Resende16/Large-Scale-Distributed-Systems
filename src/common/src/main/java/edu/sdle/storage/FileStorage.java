@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.sdle.crdt.ShoppingList;
 
 import java.io.*;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 
 public class FileStorage implements Storage {
@@ -18,50 +19,67 @@ public class FileStorage implements Storage {
     }
 
     public FileStorage(String dirName) {
+        if (!dirName.endsWith(File.separator))
+            dirName = dirName + File.separator;
+
         this.dirName = dirName;
         this.mapper = new ObjectMapper();
 
         // Create directory if needed
         File dir = new File(dirName);
         if (!dir.exists())
-            dir.mkdir();
+            dir.mkdirs();
     }
 
-    public boolean put(ShoppingList list) throws IOException {
-        File file = new File(dirName + list.getId().toString() + ".json");
-        mapper.writeValue(file, list);
-        return true;
+    public boolean put(ShoppingList list) {
+        try {
+            File file = new File(dirName + list.getId() + ".json");
+            mapper.writeValue(file, list);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean putJson(UUID key, String value) {
+        File file = new File(dirName + key + ".json");
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write(value);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     public boolean remove(UUID id) {
-        File file = new File(dirName + id.toString() + ".json");
+        File file = new File(dirName + id + ".json");
         return file.exists() && file.delete();
     }
 
-    public ShoppingList get(UUID id) throws IOException {
-        File file = new File(dirName + id.toString() +  ".json");
+    public ShoppingList get(UUID id) {
+        File file = new File(dirName + id + ".json");
         if (!file.exists())
             return null;
 
-        return mapper.readValue(file, ShoppingList.class);
+        try {
+            return mapper.readValue(file, ShoppingList.class);
+        } catch (IOException e) {
+            return null;
+        }
     }
 
-    public ArrayList<ShoppingList> getAll() throws IOException {
-        ArrayList<ShoppingList> result = new ArrayList<>();
+    @Override
+    public String getAsJson(UUID id) {
+        File file = new File(dirName + id + ".json");
+        if (!file.exists())
+            return null;
 
-        File dir = new File(dirName);
-        if (!dir.exists())
-            return result;
-
-        File[] files = dir.listFiles();
-
-        if (files != null) {
-            for (File file : files) {
-                // Filter for JSON files
-                if (file.getName().endsWith(".json"))
-                    result.add(mapper.readValue(file, ShoppingList.class));
-            }
+        try {
+            return Files.readString(Path.of(file.getAbsolutePath()));
+        } catch (IOException e) {
+            return null;
         }
-        return result;
     }
 }

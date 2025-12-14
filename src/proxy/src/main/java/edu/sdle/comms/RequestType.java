@@ -2,7 +2,10 @@ package edu.sdle.comms;
 
 public enum RequestType {
     GET,
-    PUT;
+    PUT,
+    JOIN,
+    LEAVE,
+    STATE;
 
     public static RequestType fromString(String type) {
         for (var t : RequestType.values()) {
@@ -10,6 +13,6 @@ public enum RequestType {
                 return t;
             }
         }
-        return null; // purposefully, to avoid an exception
+        return null;
     }
 }

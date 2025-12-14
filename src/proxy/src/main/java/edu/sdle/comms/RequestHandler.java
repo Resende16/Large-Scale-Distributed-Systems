@@ -1,10 +1,6 @@
 package edu.sdle.comms;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.sdle.Node;
-import edu.sdle.ProxyState;
-import edu.sdle.UUIDUtils;
+import edu.sdle.*;
 import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
@@ -17,29 +13,30 @@ import java.util.concurrent.*;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class RequestHandler {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    private final ProxyState proxyState;
+    private final ProxyState state;
     private final ExecutorService backupPool;
     private final ThreadLocal<ZMQ.Socket> socket;
 
     public RequestHandler(ZContext context,
-                          ProxyState proxyState,
+                          ProxyState state,
                           ExecutorService backupPool) {
-        this.proxyState = proxyState;
+        this.state = state;
         this.backupPool = backupPool;
 
         // Create thread-local socket for server requests
         socket = ThreadLocal.withInitial(() -> {
-            var N = proxyState.getN();
+            ZMQ.Socket s = context.createSocket(SocketType.REQ);
+            s.setReqRelaxed(true);
+            s.setLinger(0);
+
+            var N = state.N();
             var tmpN = N == 1 ? 2 : N;
-            var timeout = proxyState.getTimeout();
+            var timeout = state.timeout();
 
             // Send timeout is set such that a GET can
             // succeed even if N-1 replicas are down
-            ZMQ.Socket s = context.createSocket(SocketType.REQ);
-            s.setSendTimeOut(timeout / tmpN);
-            s.setReceiveTimeOut(timeout - s.getSendTimeOut());
+            s.setReceiveTimeOut(timeout / tmpN);
+            s.setSendTimeOut(timeout - s.getReceiveTimeOut());
             return s;
         });
     }
@@ -55,15 +52,33 @@ public class RequestHandler {
         // Parse args + hand off to handler
         switch (type) {
             case GET -> {
-                var key = parseKey(msg);
+                var key = parseUUID(msg);
                 if (key != null)
                     return handleGetRequest(key);
             }
             case PUT -> {
-                var key = parseKey(msg);
+                var key = parseUUID(msg);
                 var value = msg.pop();
                 if (key != null && value != null)
                     return handlePutRequest(key, value.toString());
+            }
+            case JOIN -> {
+                var nodeId = parseUUID(msg);
+                var nodeAddr = msg.pop();
+
+                if (nodeId != null && nodeAddr != null) {
+                    var node = new Node(nodeId, nodeAddr.toString());
+                    return handleJoinRequest(node);
+                }
+            }
+            case LEAVE -> {
+                var nodeId = parseUUID(msg);
+                var nodeAddr = msg.pop();
+
+                if (nodeId != null && nodeAddr != null) {
+                    var node = new Node(nodeId, nodeAddr.toString());
+                    return handleLeaveRequest(node);
+                }
             }
             case STATE ->  {
                 return handleStateRequest();
@@ -74,7 +89,7 @@ public class RequestHandler {
         return ReplyUtils.failure();
     }
 
-    public UUID parseKey(ZMsg msg) {
+    public UUID parseUUID(ZMsg msg) {
         if (msg.isEmpty())
             return null;
 
@@ -86,46 +101,47 @@ public class RequestHandler {
         return UUIDUtils.uuidFromBytes(bytes);
     }
 
-    public ZMsg makeGetRequest(Node node, UUID key) {
-        ZMsg msg = new ZMsg();
-        msg.add(RequestType.GET.toString());
-
-        var bytes = UUIDUtils.uuidToBytes(key);
-        msg.add(bytes);
-
+    public ZMsg makeRequest(Node node, ZMsg msg) {
         var socket = this.socket.get();
-        socket.connect(node.getZMQAddress());
+        var zmqAddr = node.getZMQAddress();
+        socket.connect(zmqAddr);
         msg.send(socket);
 
-        return ZMsg.recvMsg(socket);
+        var reply = ZMsg.recvMsg(socket);
+        socket.disconnect(zmqAddr);
+        return reply;
+    }
+
+    public ZMsg makeGetRequest(Node node, UUID key) {
+        System.out.println("< GET " + key + " to " + node.getZMQAddress());
+
+        ZMsg msg = new ZMsg();
+        msg.add(RequestType.GET.toString());
+        msg.add(UUIDUtils.uuidToBytes(key));
+
+        return makeRequest(node, msg);
     }
 
     public ZMsg makePutRequest(Node node, UUID key, String value) {
+        System.out.println("< PUT " + key + " to " + node.getZMQAddress());
+
         ZMsg msg = new ZMsg();
         msg.add(RequestType.PUT.toString());
-
-        var bytes = UUIDUtils.uuidToBytes(key);
-        msg.add(bytes);
+        msg.add(UUIDUtils.uuidToBytes(key));
         msg.add(value);
 
-        var socket = this.socket.get();
-        socket.connect(node.getZMQAddress());
-        msg.send(socket);
-
-        return ZMsg.recvMsg(socket);
+        return makeRequest(node, msg);
     }
 
     public ZMsg handleGetRequest(UUID key) {
-        var N = proxyState.getN();
-        var timeout = proxyState.getTimeout();
-        var hashRing = proxyState.getHashRing();
+        System.out.println("> GET " + key);
 
-        List<Node> replicas = hashRing.getNNodes(key, N);
+        List<Node> replicas = state.ring().getNNodes(key, state.N());
         if (replicas.isEmpty())
             // Hash ring is empty?
             return ReplyUtils.failure();
 
-        long deadline = System.currentTimeMillis() + timeout;
+        long deadline = System.currentTimeMillis() + state.timeout();
 
         // Wait for the first successful response (sequential)
         for (Node node : replicas) {
@@ -145,11 +161,9 @@ public class RequestHandler {
     }
 
     public ZMsg handlePutRequest(UUID key, String value) {
-        var N = proxyState.getN();
-        var timeout = proxyState.getTimeout();
-        var hashRing = proxyState.getHashRing();
+        System.out.println("> PUT " + key);
 
-        List<Node> replicas = hashRing.getNNodes(key, N);
+        List<Node> replicas = state.ring().getNNodes(key, state.N());
         if (replicas.isEmpty())
             return ReplyUtils.failure();
 
@@ -160,7 +174,7 @@ public class RequestHandler {
         for (Node node : replicas)
             completionService.submit(() -> makePutRequest(node, key, value));
 
-        long deadline = System.currentTimeMillis() + timeout;
+        long deadline = System.currentTimeMillis() + state.timeout();
 
         // Wait for at least one success
         try {
@@ -184,12 +198,40 @@ public class RequestHandler {
     }
 
     public ZMsg handleStateRequest() {
-        try {
-            var json = MAPPER.writeValueAsString(proxyState);
-            return ReplyUtils.success(json);
+        System.out.println("> STATE ");
 
-        } catch (JsonProcessingException _) {
+        var json = JsonUtils.toJson(state);
+        if (json == null)
             return ReplyUtils.failure();
-        }
+
+        return ReplyUtils.success(json);
+    }
+
+    public ZMsg handleJoinRequest(Node node) {
+        System.out.println("> JOIN " + node.getZMQAddress());
+
+        var hashRing = state.ring();
+
+        // Node already in the ring
+        if (hashRing.containsNode(node.getId()))
+            return ReplyUtils.failure();
+
+        // issuer is the node itself?
+        hashRing.addNode(node, node.getId());
+
+        return ReplyUtils.success();
+    }
+
+    public ZMsg handleLeaveRequest(Node node) {
+        System.out.println("> LEAVE " + node.getZMQAddress());
+
+        var hashRing = state.ring();
+
+        // Node is not in the ring
+        if (!hashRing.containsNode(node.getId()))
+            return ReplyUtils.failure();
+
+        hashRing.removeNode(node.getId());
+        return ReplyUtils.success();
     }
 }

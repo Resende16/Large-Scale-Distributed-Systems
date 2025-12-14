@@ -1,6 +1,9 @@
 package edu.sdle.comms;
 
-import org.zeromq.*;
+import org.zeromq.SocketType;
+import org.zeromq.ZContext;
+import org.zeromq.ZMQ;
+import org.zeromq.ZMsg;
 
 public class Worker implements Runnable {
     private final ZContext context;
@@ -16,16 +19,18 @@ public class Worker implements Runnable {
 
     public void run() {
         Thread.currentThread().setName("Worker-" + workerIndex);
-
         ZMQ.Socket worker = context.createSocket(SocketType.DEALER);
-        worker.connect("inproc://backend");
-        worker.send("READY"); // signal READY
 
-        System.out.println("Worker " + workerIndex + " is listening");
+        try (worker) {
+            worker.connect("inproc://backend");
+            worker.setReceiveTimeOut(500);
+            worker.send("READY"); // signal READY
 
-        try {
             while (!Thread.currentThread().isInterrupted()) {
                 ZMsg msg = ZMsg.recvMsg(worker);
+                if (msg == null)
+                    continue;
+
                 byte[] clientId = msg.pop().getData();
                 msg.pop();
 
@@ -36,9 +41,10 @@ public class Worker implements Runnable {
                 reply.push(clientId);
                 reply.send(worker);
             }
-        } catch (Exception e) {
-            System.err.println("[" + Thread.currentThread().getName() + "] Worker thread interrupted\n" + e);
+        } catch (org.zeromq.ZMQException e) {
+            // Print unless exception due to shutdown
+            if (e.getErrorCode() != 156384765 && e.getErrorCode() != 4)
+                System.err.println("[" + Thread.currentThread().getName() + "] Worker thread interrupted\n" + e);
         }
     }
-
 }

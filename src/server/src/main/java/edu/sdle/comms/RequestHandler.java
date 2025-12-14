@@ -5,7 +5,6 @@ import edu.sdle.storage.Storage;
 import org.zeromq.ZMsg;
 
 import java.util.*;
-import java.util.concurrent.*;
 
 public class RequestHandler {
     private final Storage storage;
@@ -54,6 +53,8 @@ public class RequestHandler {
     }
 
     public ZMsg handleGetRequest(UUID key) {
+        System.out.println("> GET " + key);
+
         var payload = storage.getAsJson(key);
 
         if (payload == null || payload.isEmpty())
@@ -63,6 +64,8 @@ public class RequestHandler {
     }
 
     public ZMsg handlePutRequest(UUID key, String value) {
+        System.out.println("> PUT " + key);
+
         if (storage.putJson(key, value))
             return ReplyUtils.success();
         else

@@ -1,6 +1,11 @@
 package edu.sdle;
 
+import edu.sdle.comms.CommsManager;
+import edu.sdle.comms.RequestHandler;
+import edu.sdle.storage.FileStorage;
+
 import java.util.List;
+import java.util.UUID;
 
 public class Server {
 
@@ -14,14 +19,43 @@ public class Server {
         if (!parseArgs(args, proxies))
             return;
 
-        // Print server parameters
-        System.out.println("--------------------------");
-        System.out.println("Server parameters:");
-        System.out.println("Address: " + address);
-        System.out.println("Worker threads: " + workerThreads);
-        System.out.println("--------------------------");
 
-        //todo
+        Node node = new Node(UUID.randomUUID(), address);
+
+        Bootstrapper bs = new Bootstrapper(node);
+        if (!bs.bootstrap())
+            return;
+
+        // Just in case
+        String bindAddr = address
+                .replace("tcp://localhost:", "tcp://*:")
+                .replace("tcp://127.0.0.1:", "tcp://*:");
+
+        // Print server parameters
+        System.out.println();
+
+        System.out.print("- Server parameters ");
+        System.out.println("-".repeat(20));
+        System.out.printf("%-15s %s%n", "Address", address);
+        System.out.printf("%-15s %s%n", "Workers", workerThreads);
+        System.out.println("-".repeat(40));
+
+        System.out.println();
+
+        var manager = new CommsManager(workerThreads);
+        var storage = new FileStorage(address);
+        var handler = new RequestHandler(storage);
+        manager.init(bindAddr, handler);
+
+        System.out.println("Press ENTER to exit");
+        try {
+            System.in.read();
+        } catch (Exception e) {
+            System.err.println("Error reading input: " + e.getMessage());
+        }
+        System.out.println("Exiting...");
+
+        manager.shutdown();
     }
 
     private static void printArgList() {
