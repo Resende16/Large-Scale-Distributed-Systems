@@ -3,14 +3,12 @@ package edu.sdle;
 import edu.sdle.comms.ReplyUtils;
 import edu.sdle.comms.RequestType;
 import edu.sdle.hashring.DistributedHashRing;
-import edu.sdle.storage.FileStorage;
 import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
 
 import java.util.List;
-import java.util.UUID;
 
 public class Bootstrapper {
     private final String ownAddress;
@@ -28,7 +26,7 @@ public class Bootstrapper {
         this.N = N;
     }
 
-    public NodeState bootstrap() {
+    public ProxyState bootstrap() {
         ZContext context = new ZContext();
         ZMQ.Socket socket = context.createSocket(SocketType.REQ);
         socket.setSendTimeOut(700);
@@ -76,8 +74,8 @@ public class Bootstrapper {
         // Create its own state
         else {
             System.out.println("Bootstrapped as the starting proxy with a brand new state!");
-            var hashRing = new DistributedHashRing(vnodes, 2);
-            return new NodeState(hashRing, timeout, new FileStorage(""),new Node(UUID.randomUUID(), ownAddress));
+            var hashRing = new DistributedHashRing(vnodes);
+            return new ProxyState(hashRing, timeout, N);
         }
     }
 
@@ -86,7 +84,7 @@ public class Bootstrapper {
      * @param zmqAddress ZMQ address of the proxy
      * @return A ProxyState object on success, null otherwise
      */
-    private NodeState requestState(ZMQ.Socket socket,
+    private ProxyState requestState(ZMQ.Socket socket,
                                    String zmqAddress) {
         socket.connect(zmqAddress);
         socket.send(RequestType.STATE.toString());
@@ -99,7 +97,7 @@ public class Bootstrapper {
         }
 
         var json = reply.pop().toString();
-        return JsonUtils.fromJson(json, NodeState.class);
+        return JsonUtils.fromJson(json, ProxyState.class);
     }
 
     /**

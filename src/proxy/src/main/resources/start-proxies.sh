@@ -15,15 +15,16 @@ echo "Starting proxies..."
 # Start tmux session
 tmux new-session -d -s proxies
 
-tmux send-keys "java --enable-native-access=ALL-UNNAMED -jar ./proxy-dev.jar --address tcp://localhost:6000" C-m
+tmux send-keys "java --enable-native-access=ALL-UNNAMED -jar ./proxy-dev.jar --address tcp://localhost:5555" C-m
 
-#sleep 3
+# Wait for the starting proxy to bootstrap
+sleep 3
 
 tmux split-window -h
-tmux send-keys "java --enable-native-access=ALL-UNNAMED -jar ./proxy-dev.jar --address tcp://localhost:6001" C-m
+tmux send-keys "java --enable-native-access=ALL-UNNAMED -jar ./proxy-dev.jar --address tcp://localhost:5556" C-m
 
 tmux split-window -v
-tmux send-keys "java --enable-native-access=ALL-UNNAMED -jar ./proxy-dev.jar --address tcp://localhost:6002" C-m
+tmux send-keys "java --enable-native-access=ALL-UNNAMED -jar ./proxy-dev.jar --address tcp://localhost:5557" C-m
 
 tmux select-layout even-horizontal
 

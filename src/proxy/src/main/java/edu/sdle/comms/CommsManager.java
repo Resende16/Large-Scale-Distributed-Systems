@@ -19,12 +19,13 @@ public class CommsManager {
     private final Queue<byte[]> freeWorkers;
 
     private final ExecutorService workerPool;
+    private final ExecutorService backupPool;
     private Thread pollerThread;
 
     private final int noWorkers;
     private boolean running = false;
 
-    public CommsManager(int noWorkers) {
+    public CommsManager(int noWorkers, int noBackupWorkers) {
         context = new ZContext();
         this.noWorkers = noWorkers;
         freeWorkers = new LinkedList<>();
@@ -33,19 +34,14 @@ public class CommsManager {
         frontend = context.createSocket(SocketType.ROUTER);
         backend = context.createSocket(SocketType.ROUTER);
 
-        // Create thread pool
+        // Create thread pools
         var vfactory = Thread.ofVirtual().factory();
         workerPool = Executors.newFixedThreadPool(noWorkers, vfactory);
+        backupPool = Executors.newFixedThreadPool(noBackupWorkers, vfactory);
     }
 
     public void init(String bindAddress, RequestHandler handler) {
         running = true;
-
-        // Just in case
-        bindAddress = bindAddress
-                .replace("localhost:", "*:")
-                .replace("127.0.0.1:", "*:");
-
         frontend.bind(bindAddress);
         backend.bind("inproc://backend");
 
@@ -97,11 +93,14 @@ public class CommsManager {
     public void shutdown() {
         running = false;
         workerPool.shutdownNow();
+        backupPool.shutdownNow();
 
         // Wait for workers to finish
         try {
             if (!workerPool.awaitTermination(2, SECONDS))
                 System.err.println("Worker pool did not terminate in time!");
+            if (!backupPool.awaitTermination(2, SECONDS))
+                System.err.println("Backup pool did not terminate in time!");
 
             if (pollerThread != null)
                 pollerThread.join(2000);
@@ -119,5 +118,9 @@ public class CommsManager {
 
     public ZContext getContext() {
         return context;
+    }
+
+    public ExecutorService getBackupPool() {
+        return backupPool;
     }
 }

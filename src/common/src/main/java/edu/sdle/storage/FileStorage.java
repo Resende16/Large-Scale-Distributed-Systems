@@ -1,15 +1,17 @@
 package edu.sdle.storage;
 
-import edu.sdle.utils.JsonUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.sdle.crdt.ShoppingList;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.ArrayList;
+import java.nio.file.Path;
 import java.util.UUID;
 
 public class FileStorage implements Storage {
-    private final File dir;
+
+    private final String dirName;
+    private final ObjectMapper mapper;
 
     public FileStorage() {
         // Use current directory
@@ -20,78 +22,64 @@ public class FileStorage implements Storage {
         if (!dirName.endsWith(File.separator))
             dirName = dirName + File.separator;
 
+        this.dirName = dirName;
+        this.mapper = new ObjectMapper();
+
         // Create directory if needed
         File dir = new File(dirName);
         if (!dir.exists())
             dir.mkdirs();
-
-        this.dir = dir;
     }
 
-    public ShoppingList getObj(UUID id) {
-        var file = new File(dir, id + ".json");
-        if (!file.exists()) {
-            return null;
+    public boolean put(ShoppingList list) {
+        try {
+            File file = new File(dirName + list.getId() + ".json");
+            mapper.writeValue(file, list);
+            return true;
+        } catch (IOException e) {
+            return false;
         }
-
-        return JsonUtils.fromJson(file, ShoppingList.class);
     }
 
-    public String get(UUID id) {
-        File file = new File(dir, id + ".json");
-        if (!file.exists()) {
-            return null;
+    @Override
+    public boolean putJson(UUID key, String value) {
+        File file = new File(dirName + key + ".json");
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write(value);
+            return true;
+        } catch (IOException e) {
+            return false;
         }
+    }
+
+    public boolean remove(UUID id) {
+        File file = new File(dirName + id + ".json");
+        return file.exists() && file.delete();
+    }
+
+    public ShoppingList get(UUID id) {
+        File file = new File(dirName + id + ".json");
+        if (!file.exists())
+            return null;
 
         try {
-            return Files.readString(file.toPath());
+            return mapper.readValue(file, ShoppingList.class);
         } catch (IOException e) {
             return null;
         }
     }
 
-    public ArrayList<String> getKeys() {
-        ArrayList<String> keys = new ArrayList<>();
-        var files = dir.listFiles((_, name) -> name.endsWith(".json"));
+    @Override
+    public String getAsJson(UUID id) {
+        File file = new File(dirName + id + ".json");
+        if (!file.exists())
+            return null;
 
-        if (files != null) {
-            for (File file : files) {
-                var k = file.getName().replace(".json", "");
-                keys.add(k);
-            }
+        try {
+            return Files.readString(Path.of(file.getAbsolutePath()));
+        } catch (IOException e) {
+            return null;
         }
-
-        return keys;
-    }
-
-    public boolean put(UUID id, String value) {
-        var thisObj = JsonUtils.fromJson(value, ShoppingList.class);
-        if (thisObj == null)
-            return false;
-
-        return putObj(thisObj);
-    }
-
-    // private utility does not merge
-    private boolean _putObj(ShoppingList obj) {
-        var file = new File(dir, obj.getId() + ".json");
-        return JsonUtils.toJson(obj, file);
-    }
-
-    // public method does merge
-    public boolean putObj(ShoppingList obj) {
-        var currObj = getObj(obj.getId());
-
-        if (currObj != null) {
-            // Merge first, then put
-            currObj.merge(obj);
-            return _putObj(currObj);
-        } else
-            return _putObj(obj);
-    }
-
-    public boolean remove(UUID id) {
-        File file = new File(dir, id + ".json");
-        return file.exists() && file.delete();
     }
 }

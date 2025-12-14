@@ -1,4 +1,4 @@
-package edu.sdle.utils;
+package edu.sdle;
 
 import java.util.UUID;
 
