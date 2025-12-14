@@ -7,20 +7,24 @@ import static edu.sdle.comms.ReplyCode.*;
 
 public class ReplyUtils {
 
-    // Represents a failure of some sort, i.e.
-    // the request did not succeed
-    public static ZMsg failure() {
+    private static ZMsg makeReply(ReplyCode code) {
         ZMsg msg = new ZMsg();
-        msg.add(FAILURE.code());
+        msg.add(code.code());
         return msg;
     }
 
-    // Represents a successful request, where
-    // no payload is attached to the reply
+    public static ZMsg failure() {
+        return makeReply(FAILURE);
+    }
+
+    // Represents a request failure
+    public static ZMsg failure(ReplyCode code) {
+        return makeReply(code);
+    }
+
+    // Represents a successful request
     public static ZMsg success() {
-        ZMsg msg = new ZMsg();
-        msg.add(SUCCESS.code());
-        return msg;
+        return makeReply(SUCCESS);
     }
 
     // A successful request that returns

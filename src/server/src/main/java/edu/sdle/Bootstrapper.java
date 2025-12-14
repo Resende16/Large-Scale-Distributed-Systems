@@ -2,6 +2,8 @@ package edu.sdle;
 
 import edu.sdle.comms.ReplyUtils;
 import edu.sdle.comms.RequestType;
+import edu.sdle.hashring.DistributedHashRing;
+import edu.sdle.utils.JsonUtils;
 import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
@@ -10,84 +12,80 @@ import org.zeromq.ZMsg;
 import java.util.List;
 
 public class Bootstrapper {
-    private final Node node;
 
-    public Bootstrapper(Node node) {
-        this.node = node;
-    }
+    public static DistributedHashRing bootstrap(String address, int vnodes, int R) {
+        System.out.println("Starting bootstrap process...");
 
-    public boolean bootstrap() {
+        // Create socket
         ZContext context = new ZContext();
         ZMQ.Socket socket = context.createSocket(SocketType.REQ);
-        socket.setSendTimeOut(700);
-        socket.setReceiveTimeOut(700);
+
+        socket.setSendTimeOut(1000);
+        socket.setReceiveTimeOut(300);
         socket.setReqRelaxed(true);
         socket.setLinger(0);
 
-        if (isAddressInUse(socket)) {
-            socket.close();
-            context.close();
-            return false;
-        }
+        // Get ring from seed nodes
+        var seeds = SeedNodeRegistry.getInstance().getSeedAddresses();
+        var ring = getRing(socket, seeds, address);
 
-        List<String> proxies = ProxyRegistry.getInstance().getProxyAddresses();
+        // If that fails, try to create it
+        if (ring == null)
+            ring = newRing(seeds, address, vnodes, R);
 
-        System.out.println("Contacting a proxy...");
-
-        // Try to contact proxies up to 3 times
-        for (String addr : proxies) {
-
-            var success = makeJoinRequest(socket, addr);
-
-            if (success) {
-                socket.close();
-                context.destroy();
-                System.out.println("Join accepted by " + addr + "!");
-                return true;
-            }
-        }
-
+        // Clean up
         socket.close();
         context.destroy();
 
-        System.out.println("Failed to contact a proxy, are you sure they are running?");
-        return false;
+        return ring;
     }
 
-    private boolean makeJoinRequest(ZMQ.Socket socket,
-                                    String zmqAddress) {
-        socket.connect(zmqAddress);
-        socket.sendMore(RequestType.JOIN.toString());
-        socket.sendMore(UUIDUtils.uuidToBytes(node.getId()));
-        socket.send(node.getZMQAddress());
+    /// Return a new ring, or null if node is not allowed to create it
+    private static DistributedHashRing newRing(List<String> seeds, String address, int vnodes, int R) {
+        var firstSeed = seeds.getFirst();
+
+        if (firstSeed.equals(address)) {
+            // Create ring
+            System.out.println("Bootstrapped as the starting seed with a brand new ring!");
+            return new DistributedHashRing(vnodes, R);
+        }
+        else {
+            // Not allowed to create ring, fail bootstrapping
+            System.err.println("Cannot bootstrap: no seed nodes are up and this is not the starting seed!");
+            System.err.println("Please start the node @ " + firstSeed + " to get started.");
+            return null;
+        }
+    }
+
+    /// Get the hash ring by contacting each seed node until obtaining a response
+    private static DistributedHashRing getRing(ZMQ.Socket socket, List<String> seeds, String address) {
+        for (var seed : seeds) {
+            if (seed.equals(address))
+                continue;
+
+            var ring = getRing(socket, seed);
+            if (ring != null) {
+                System.out.println("Successfully bootstrapped from " + seed + "!");
+                return ring;
+            }
+        }
+
+        // All seeds are down
+        return null;
+    }
+
+    /// Get the hash ring from a seed node
+    private static DistributedHashRing getRing(ZMQ.Socket socket, String address) {
+        socket.connect(address);
+        socket.send(RequestType.STATE.name());
 
         var reply = ZMsg.recvMsg(socket);
-        socket.disconnect(zmqAddress);
+        socket.disconnect(address);
 
-        return ReplyUtils.didSucceed(reply);
-    }
+        if (!ReplyUtils.didSucceed(reply) || reply.isEmpty())
+            return null;
 
-    /**
-     * Check if the proxy address is already in use.
-     * @param socket Socket to use during the test
-     * @return True if the address is in use
-     */
-    private boolean isAddressInUse(ZMQ.Socket socket) {
-        String bindAddr = node.getZMQAddress()
-                .replace("tcp://localhost:", "tcp://*:")
-                .replace("tcp://127.0.0.1:", "tcp://*:");
-
-        try {
-            socket.bind(bindAddr);
-            socket.unbind(bindAddr);
-            return false;
-
-        } catch (org.zeromq.ZMQException e) {
-            if (e.getErrorCode() == 48) {
-                System.err.println("A proxy with the same address is already up and running!");
-                return true;
-            }
-            return false;
-        }
+        var json = reply.pop().toString();
+        return JsonUtils.fromJson(json, DistributedHashRing.class);
     }
 }

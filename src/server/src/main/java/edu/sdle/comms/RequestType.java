@@ -3,10 +3,12 @@ package edu.sdle.comms;
 public enum RequestType {
     GET,
     PUT,
-    JOIN,
-    LEAVE;
+    REPLICA_GET,
+    REPLICA_PUT,
+    STATE,
+    GOSSIP;
 
-    public static RequestType fromString(String type) {
+    public static RequestType parse(String type) {
         for (var t : RequestType.values()) {
             if (t.name().equalsIgnoreCase(type)) {
                 return t;

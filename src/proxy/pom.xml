@@ -40,6 +40,12 @@
             <resource>
                 <directory>src/main/resources</directory>
             </resource>
+            <resource>
+                <directory>${project.basedir}/..</directory> <!-- ! -->
+                <includes>
+                    <include>seed-nodes.txt</include>
+                </includes>
+            </resource>
         </resources>
 
         <plugins>

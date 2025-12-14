@@ -1,116 +1,46 @@
 package edu.sdle;
 
 import edu.sdle.comms.CommsManager;
-import edu.sdle.comms.RequestHandler;
+import edu.sdle.comms.requests.RequestHandler;
+import edu.sdle.hashring.DistributedHashRing;
 import edu.sdle.storage.FileStorage;
 
-import java.util.List;
-import java.util.UUID;
-
 public class Server {
-
-    private static String address = null;
-    private static int workerThreads = 4;
-
     static void main(String[] args) {
-        var proxies = ProxyRegistry.getInstance().getProxyAddresses();
-
-        // Parse user-provided args
-        if (!parseArgs(args, proxies))
+        // Parse user args
+        ArgParser parser = new ArgParser();
+        if (!parser.parseArgs(args))
             return;
 
 
-        Node node = new Node(UUID.randomUUID(), address);
+        // Create node state
+        var node = new Node(parser.id, parser.address);
+        var storage = new FileStorage("data/" + parser.id);
+        //var ring = new DistributedHashRing(parser.vnodes, parser.R);
 
-        Bootstrapper bs = new Bootstrapper(node);
-        if (!bs.bootstrap())
+        var ring = Bootstrapper.bootstrap(parser.address, parser.vnodes, parser.R);
+        if (ring == null)
             return;
 
-        // Just in case
-        String bindAddr = address
-                .replace("tcp://localhost:", "tcp://*:")
-                .replace("tcp://127.0.0.1:", "tcp://*:");
+        var state = new NodeState(ring, storage, node);
 
-        // Print server parameters
-        System.out.println();
+        parser.printArgs();
 
-        System.out.print("- Server parameters ");
-        System.out.println("-".repeat(20));
-        System.out.printf("%-15s %s%n", "Address", address);
-        System.out.printf("%-15s %s%n", "Workers", workerThreads);
-        System.out.println("-".repeat(40));
+        var manager = new CommsManager(parser.workerThreads, parser.backupThreads);
+        var handler = new RequestHandler(manager.getContext(), state, manager.getBackupPool(), storage);
+        manager.init(parser.address, handler);
 
-        System.out.println();
+        //todo: Start gossiper
 
-        var manager = new CommsManager(workerThreads);
-        var storage = new FileStorage(address);
-        var handler = new RequestHandler(storage);
-        manager.init(bindAddr, handler);
+        // Exit when user presses enter key
+        System.out.println("Press ENTER to exit\n");
 
-        System.out.println("Press ENTER to exit");
         try {
             System.in.read();
-        } catch (Exception e) {
-            System.err.println("Error reading input: " + e.getMessage());
-        }
+        } catch (Exception _) {}
+
         System.out.println("Exiting...");
 
         manager.shutdown();
-    }
-
-    private static void printArgList() {
-        System.out.println("-".repeat(50));
-        System.out.printf("%-25s %s%n", "--address <ip:port>", "Address of the node");
-        System.out.printf("%-25s %s%n", "--worker-threads <int>", "Number of worker threads");
-        System.out.println("-".repeat(50));
-    }
-
-    private static boolean parseArgs(String[] args, List<String> proxies) {
-        for (int i = 0; i < args.length; i++) {
-            String arg = args[i];
-
-            switch (arg) {
-                case "--help" -> {
-                    printArgList();
-                    return false;
-                }
-                case "--address" -> {
-                    address = args[++i];
-
-                    // Invalid address
-                    if (!address.contains(":")) {
-                        System.err.println("Invalid address '" + address + "', missing colon!");
-                        return false;
-                    }
-
-                    // Reserved address
-                    if (proxies.contains(address)) {
-                        System.err.println("This address belongs to a known proxy and cannot be used by a server!");
-                        return false;
-                    }
-                }
-                case "--worker-threads" -> {
-                    try {
-                        workerThreads = Integer.parseInt(args[++i]);
-                    } catch (NumberFormatException e) {
-                        System.err.println("Invalid worker thread count (" + args[i] + ")!");
-                        return false;
-                    }
-                }
-                default -> {
-                    System.out.println("Unknown argument " + arg + " skipped!");
-                    ++i;
-                }
-            }
-        }
-
-        // Address not provided
-        if (address == null) {
-            System.err.println("Address not specified, use --address!");
-            System.err.println("You may use --help for a list of arguments.");
-            return false;
-        }
-
-        return true;
     }
 }

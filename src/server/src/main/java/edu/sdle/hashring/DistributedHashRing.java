@@ -15,19 +15,27 @@ import java.util.UUID;
 /// A CRDT implementation of a hash ring
 public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     @JsonIgnore private final HashRing ring;
-    @JsonProperty private final AWMap<UUID, LWWRegister<String>> members;
+    @JsonIgnore private final int R; // Replication factor
+    @JsonProperty public final AWMap<UUID, LWWRegister<String>> members;
 
-    public DistributedHashRing(int vnodesPerNode) {
+    public DistributedHashRing(int vnodesPerNode, int R) {
         ring = new HashRing(vnodesPerNode);
         members = new AWMap<>();
+        this.R = R;
+    }
+
+    public AWMap<UUID, LWWRegister<String>> getMembers() {
+        return members;
     }
 
     // Strictly for deserialization
     @JsonCreator
     private DistributedHashRing(
             @JsonProperty("members") AWMap<UUID, LWWRegister<String>> members,
-            @JsonProperty("vnodes") int vnodes
+            @JsonProperty("vnodes") int vnodes,
+            @JsonProperty("R") int R
     ) {
+        this.R = R;
         this.members = members;
         this.ring = new HashRing(vnodes);
 
@@ -48,6 +56,11 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
 
         var netAddress = members.get(nodeId);
         return new Node(nodeId, netAddress.value());
+    }
+
+    // Shortcut, since distributed version contains R
+    public List<Node> getNNodes(UUID key) {
+        return getNNodes(key, R);
     }
 
     /**
@@ -79,7 +92,7 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
             _node.assign(node.getNetAddress(), issuerNode);
         else {
             members.put(node.getId(),
-                    new LWWRegister<>(node.getNetAddress(), issuerNode),
+                    new LWWRegister<>(node.getZMQAddress(), issuerNode),
                     issuerNode
             );
             ring.addNode(node.getId());
@@ -132,6 +145,15 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     @JsonProperty("vnodes")
     public int getVnodesPerNode() {
         return ring.getVnodesPerNode();
+    }
+
+    /**
+     * Get the replication factor of the distributed ring.
+     * @return Parameter R of the distributed hash ring
+     */
+    @JsonProperty("R")
+    public int getR() {
+        return R;
     }
 
     @Override

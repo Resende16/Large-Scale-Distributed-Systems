@@ -10,6 +10,7 @@ import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static edu.sdle.comms.ReplyCode.FAILURE_BUSY;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class CommsManager {
@@ -19,29 +20,35 @@ public class CommsManager {
     private final Queue<byte[]> freeWorkers;
 
     private final ExecutorService workerPool;
-    private final ExecutorService backupPool;
     private Thread pollerThread;
 
     private final int noWorkers;
     private boolean running = false;
 
-    public CommsManager(int noWorkers, int noBackupWorkers) {
+    public CommsManager(int noWorkers) {
         context = new ZContext();
         this.noWorkers = noWorkers;
         freeWorkers = new LinkedList<>();
 
         // Create sockets
         frontend = context.createSocket(SocketType.ROUTER);
+        frontend.setMaxMsgSize(1024 * 1024); // 1MB
+
         backend = context.createSocket(SocketType.ROUTER);
 
-        // Create thread pools
+        // Create thread pool
         var vfactory = Thread.ofVirtual().factory();
         workerPool = Executors.newFixedThreadPool(noWorkers, vfactory);
-        backupPool = Executors.newFixedThreadPool(noBackupWorkers, vfactory);
     }
 
     public void init(String bindAddress, RequestHandler handler) {
         running = true;
+
+        // Just in case
+        bindAddress = bindAddress
+                .replace("localhost:", "*:")
+                .replace("127.0.0.1:", "*:");
+
         frontend.bind(bindAddress);
         backend.bind("inproc://backend");
 
@@ -62,13 +69,23 @@ public class CommsManager {
         while (running) {
             poller.poll(1000);
 
-            if (poller.pollin(1) && !freeWorkers.isEmpty()) {
+            if (poller.pollin(1)) {
                 ZMsg msg = ZMsg.recvMsg(frontend);
 
                 // [identity][empty][type]
                 if (msg.size() >= 3) {
-                    msg.push(freeWorkers.poll());
-                    msg.send(backend);
+                    if (!freeWorkers.isEmpty()) {
+                        msg.push(freeWorkers.poll());
+                        msg.send(backend);
+                    }
+                    else {
+                        // All workers busy, reject
+                        byte[] clientId = msg.pop().getData();
+                        ReplyUtils.failure(FAILURE_BUSY)
+                                .push("")
+                                .push(clientId)
+                                .send(frontend);
+                    }
                 }
             }
 
@@ -93,14 +110,11 @@ public class CommsManager {
     public void shutdown() {
         running = false;
         workerPool.shutdownNow();
-        backupPool.shutdownNow();
 
         // Wait for workers to finish
         try {
             if (!workerPool.awaitTermination(2, SECONDS))
                 System.err.println("Worker pool did not terminate in time!");
-            if (!backupPool.awaitTermination(2, SECONDS))
-                System.err.println("Backup pool did not terminate in time!");
 
             if (pollerThread != null)
                 pollerThread.join(2000);
@@ -118,9 +132,5 @@ public class CommsManager {
 
     public ZContext getContext() {
         return context;
-    }
-
-    public ExecutorService getBackupPool() {
-        return backupPool;
     }
 }

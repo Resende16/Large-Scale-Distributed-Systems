@@ -1,74 +1,74 @@
 package edu.sdle.comms;
 
-import edu.sdle.UUIDUtils;
-import edu.sdle.storage.Storage;
+import edu.sdle.*;
+import edu.sdle.comms.requests.*;
+import org.zeromq.SocketType;
+import org.zeromq.ZContext;
+import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
 
-import java.util.*;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.concurrent.*;
 
 public class RequestHandler {
-    private final Storage storage;
+    public static final int TIMEOUT = 1500; // per request
 
-    public RequestHandler(Storage storage) {
-        this.storage = storage;
+    private final NodeState state;
+    private final Map<RequestType, Request> requests;
+
+    public RequestHandler(NodeState state) {
+        this.state = state;
+        requests = new EnumMap<>(RequestType.class);
     }
 
+    /**
+     * Handle a client request.
+     * @param msg Request to be handled
+     * @return The reply as a ZMsg
+     */
     public ZMsg handleRequest(ZMsg msg) {
         var typeStr = msg.pop().toString();
-        var type = RequestType.fromString(typeStr);
+        var type = RequestType.parse(typeStr);
 
         if (type == null)
             // Invalid type
             return ReplyUtils.failure();
 
-        // Parse args + hand off to handler
-        switch (type) {
-            case GET -> {
-                var key = parseKey(msg);
-                if (key != null)
-                    return handleGetRequest(key);
-            }
-            case PUT -> {
-                var key = parseKey(msg);
-                var value = msg.pop();
-                if (key != null && value != null)
-                    return handlePutRequest(key, value.toString());
-            }
-        }
-
-        // Otherwise malformed
-        return ReplyUtils.failure();
-    }
-
-    public UUID parseKey(ZMsg msg) {
-        if (msg.isEmpty())
-            return null;
-
-        var bytes = msg.pop().getData();
-        if (bytes.length != 16)
-            // Invalid UUID
-            return null;
-
-        return UUIDUtils.uuidFromBytes(bytes);
-    }
-
-    public ZMsg handleGetRequest(UUID key) {
-        System.out.println("> GET " + key);
-
-        var payload = storage.getAsJson(key);
-
-        if (payload == null || payload.isEmpty())
+        var request = requests.get(type);
+        if (request == null)
             return ReplyUtils.failure();
-        else
-            return ReplyUtils.success(payload);
+
+        // Dispatch to designated handler
+        return request.handle(state, msg);
     }
 
-    public ZMsg handlePutRequest(UUID key, String value) {
-        System.out.println("> PUT " + key);
+    /**
+     * Registers request handlers for various request types.
+     * @param context ZMQ context used for creating the utility socket
+     * @param backupPool Thread pool for sending requests to other nodes
+     */
+    public void registerRequests(ZContext context, ExecutorService backupPool) {
+        // Create thread-local socket for node requests
+        var socket = ThreadLocal.withInitial(() -> {
+            ZMQ.Socket _socket = context.createSocket(SocketType.REQ);
+            _socket.setReqRelaxed(true);
+            _socket.setLinger(0);
 
-        if (storage.putJson(key, value))
-            return ReplyUtils.success();
-        else
-            return ReplyUtils.failure();
+            var R = state.ring().getR();
+
+            // Receive timeout is set such that a GET can
+            // succeed even if R-1 replicas are down
+            _socket.setReceiveTimeOut(TIMEOUT / R);
+            _socket.setSendTimeOut(300);
+            return _socket;
+        });
+
+        requests.put(RequestType.GET, new GetRequest(socket));
+        requests.put(RequestType.PUT, new PutRequest(socket, backupPool));
+        requests.put(RequestType.REPLICA_GET, new RGetRequest());
+        requests.put(RequestType.REPLICA_PUT, new RPutRequest());
+        requests.put(RequestType.STATE, new StateRequest());
+        requests.put(RequestType.GOSSIP, new GossipRequest());
     }
 }

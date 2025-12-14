@@ -44,4 +44,20 @@ public class Node {
     public String getZMQAddress() {
         return "tcp://" + ip + ":" + port;
     }
+
+    @Override
+    public String toString() {
+        return "Node(" + id + ", " + ip + ":" + port + ")";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
+
+        Node node = (Node) obj;
+        return id.equals(node.id);
+    }
 }

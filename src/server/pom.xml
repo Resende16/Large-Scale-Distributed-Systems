@@ -40,6 +40,12 @@
             <resource>
                 <directory>src/main/resources</directory>
             </resource>
+            <resource>
+                <directory>${project.basedir}/..</directory> <!-- ! -->
+                <includes>
+                    <include>seed-nodes.txt</include>
+                </includes>
+            </resource>
         </resources>
 
         <plugins>
@@ -88,7 +94,7 @@
                                 <resource>
                                     <directory>src/main/resources</directory>
                                     <includes>
-                                        <include>start-servers.sh</include>
+                                        <include>start-nodes.sh</include>
                                     </includes>
                                 </resource>
                             </resources>

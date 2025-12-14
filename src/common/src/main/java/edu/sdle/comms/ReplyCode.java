@@ -2,7 +2,9 @@ package edu.sdle.comms;
 
 public enum ReplyCode {
     SUCCESS("0"),
-    FAILURE("1");
+    FAILURE("1"),
+    FAILURE_TIMEOUT("2"),
+    FAILURE_BUSY("3");
 
     private final String _code;
 
