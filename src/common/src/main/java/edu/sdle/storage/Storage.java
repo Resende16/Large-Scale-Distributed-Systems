@@ -2,7 +2,7 @@ package edu.sdle.storage;
 
 import edu.sdle.crdt.ShoppingList;
 
-import java.util.ArrayList;
+import java.util.Set;
 import java.util.UUID;
 
 public interface Storage {
@@ -22,12 +22,13 @@ public interface Storage {
 
     /**
      * Get keys for all entries in storage.
-     * @return An ArrayList of keys
+     * @return A Set of keys
      */
-    ArrayList<String> getKeys();
+    Set<UUID> getKeys();
 
     /**
-     * Store a value in storage, provided its Json string.
+     * Store an entry in storage, provided its Json string.
+     * @param key Key of the entry
      * @param value A Json string to store
      * @return True on success, false on fail
      */

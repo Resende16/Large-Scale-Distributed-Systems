@@ -1,12 +1,9 @@
 package edu.sdle.comms.requests;
 
-import edu.sdle.Node;
 import edu.sdle.NodeState;
 import edu.sdle.comms.ReplyUtils;
 import edu.sdle.utils.RequestUtils;
 import org.zeromq.ZMsg;
-
-import java.util.List;
 
 public class RPutRequest extends Request {
     @Override
@@ -23,7 +20,7 @@ public class RPutRequest extends Request {
         //todo: Better logging
         System.out.println("> REPLICA_PUT " + key);
 
-        List<Node> replicas = state.ring().getNNodes(key);
+        var replicas = state.ring().getNNodes(key);
 
         // Replica not responsible for the key
         if (!replicas.contains(state.node()))

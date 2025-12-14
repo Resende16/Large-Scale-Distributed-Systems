@@ -69,6 +69,6 @@ public class RequestHandler {
         requests.put(RequestType.REPLICA_GET, new RGetRequest());
         requests.put(RequestType.REPLICA_PUT, new RPutRequest());
         requests.put(RequestType.STATE, new StateRequest());
-        requests.put(RequestType.GOSSIP, new GossipRequest());
+        requests.put(RequestType.GOSSIP, new GossipRequest(socket));
     }
 }

@@ -7,7 +7,7 @@ import edu.sdle.utils.RequestUtils;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
 
-import java.util.List;
+import static edu.sdle.hashring.NodeStatus.*;
 
 public class GetRequest extends Request {
     private final ThreadLocal<ZMQ.Socket> socket;
@@ -37,15 +37,36 @@ public class GetRequest extends Request {
             return ReplyUtils.success(value);
 
         // Not in local storage, try other nodes
-        List<Node> replicas = state.ring().getNNodes(key);
+        var replicas = state.ring().getNNodes(key);
         replicas.remove(state.node()); // remove self
 
         if (replicas.isEmpty())
             return ReplyUtils.failure();
 
+        //todo: return SUCCESS if stored hint
+
         // Wait for the first successful response
         for (Node node : replicas) {
+            //todo: Migrate Node to RingNode
+            var ringNode = state.ring().getRingNode(node.getId());
+            if (ringNode.getStatus() != UP) {
+                System.out.println("skipped node, MARKED as sus");
+                synchronized (ringNode) { // ?
+                    ringNode.markSuspected(state.node().getId());
+                }
+                // Skip it
+                continue;
+            }
+
             var reply = RequestUtils.makeRGetRequest(getSocket(), node, key);
+
+            if (reply == null) {
+                // timed out, mark as sus
+                synchronized (ringNode) {
+                    System.out.println("MARKING SUS " + node.getId());
+                    ringNode.markSuspected(state.node().getId());
+                }
+            }
 
             if (ReplyUtils.didSucceed(reply) && !reply.isEmpty()) {
                 var payload = reply.pop();

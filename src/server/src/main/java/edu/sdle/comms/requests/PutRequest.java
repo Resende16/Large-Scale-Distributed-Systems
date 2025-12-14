@@ -8,9 +8,9 @@ import edu.sdle.utils.RequestUtils;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
 
-import java.util.List;
 import java.util.concurrent.*;
 
+import static edu.sdle.hashring.NodeStatus.UP;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class PutRequest extends Request {
@@ -42,7 +42,7 @@ public class PutRequest extends Request {
         //todo: Better logging
         System.out.println("> PUT " + key);
 
-        List<Node> replicas = state.ring().getNNodes(key);
+        var replicas = state.ring().getNNodes(key);
         boolean earlySuccess = false;
 
         // Own node is responsible, store locally
@@ -51,13 +51,38 @@ public class PutRequest extends Request {
 
         replicas.remove(state.node());
 
+        // Remove unavailable replicas
+        var iter = replicas.iterator();
+        while (iter.hasNext()) {
+            Node replica = iter.next();
+            var ringNode = state.ring().getRingNode(replica.getId());
+            if (ringNode.getStatus() != UP) {
+
+                iter.remove();
+                System.out.println("storing replica for unavailable " + replica.getId());
+                state.hintStorage().storeHint(replica.getId(), key, value);
+            }
+        }
+
         // Submit PUT to all replicas concurrently
         CompletionService<ZMsg> completionService =
                 new ExecutorCompletionService<>(backupPool);
 
         for (Node node : replicas)
-            completionService.submit(() ->
-                    RequestUtils.makeRPutRequest(getSocket(), node, key, value));
+            completionService.submit(() -> {
+                var ringNode = state.ring().getRingNode(node.getId());
+                var reply = RequestUtils.makeRPutRequest(getSocket(), node, key, value);
+                if (reply == null) {
+                    // timed out, mark as sus
+                    System.out.println("MARKING SUS + storing hint" + node.getId());
+                    synchronized (ringNode) {
+                        ringNode.markSuspected(state.node().getId());
+                    }
+                    state.hintStorage().storeHint(node.getId(), key, value);
+
+                }
+                return reply;
+            });
 
         // Own node already succeeded, stop here
         if (earlySuccess)

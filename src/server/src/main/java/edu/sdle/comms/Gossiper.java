@@ -1,5 +1,6 @@
 package edu.sdle.comms;
 
+import edu.sdle.Node;
 import edu.sdle.NodeState;
 import edu.sdle.utils.JsonUtils;
 import org.zeromq.SocketType;
@@ -28,6 +29,7 @@ public class Gossiper {
         this.socket = context.createSocket(SocketType.REQ);
         this.socket.setSendTimeOut(500);
         this.socket.setReceiveTimeOut(500);
+        this.socket.setReqRelaxed(true);
         this.socket.setLinger(0);
 
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -37,16 +39,10 @@ public class Gossiper {
         });
     }
 
-    private String selectRandomPeer() {
-        List<String> peers = new ArrayList<>();
+    private Node selectRandomPeer() {
+        var peers = state.ring().getNodes();
 
-        // Build list of peers
-        for (var entry : state.ring().getMembers().entrySet()) {
-            var addr = entry.value().value();
-
-            if (!addr.equals(ownAddress))
-                peers.add(entry.value().value());
-        }
+        peers.remove(state.node()); // remove self
 
         if (peers.isEmpty())
             return null;
@@ -57,7 +53,7 @@ public class Gossiper {
     public void start() {
         scheduler.scheduleAtFixedRate(
                 this::gossip,
-                3, 1, TimeUnit.SECONDS
+                2, 1, TimeUnit.SECONDS
         );
     }
 
@@ -78,7 +74,7 @@ public class Gossiper {
 
     private void gossip() {
         try {
-            String peer = selectRandomPeer();
+            var peer = selectRandomPeer();
             if (peer == null)
                 return; // No more nodes in the ring
 
@@ -88,14 +84,24 @@ public class Gossiper {
                 return;
             }
 
-            socket.connect(peer);
+            // Mark self as UP in case we went down temporarily
+            // and were marked as SUSPECT by other nodes
+            synchronized (state.ring()) {
+                var self = state.ring().getRingNode(state.node().getId());
+                if (self != null)
+                    self.keepAlive(state.node().getId());
+            }
+
+            var address = peer.getZMQAddress();
+
+            socket.connect(address);
             socket.sendMore(RequestType.GOSSIP.name());
             socket.send(ringJson);
 
             socket.recvStr();
             //todo: Detect failures based on reply
 
-            socket.disconnect(peer);
+            socket.disconnect(address);
 
         } catch (Exception e) {
             System.err.println("Gossip round failed: " + e.getMessage());

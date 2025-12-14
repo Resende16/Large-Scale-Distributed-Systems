@@ -1,5 +1,6 @@
 package edu.sdle;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class Node {
@@ -59,5 +60,10 @@ public class Node {
 
         Node node = (Node) obj;
         return id.equals(node.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

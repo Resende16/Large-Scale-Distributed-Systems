@@ -61,6 +61,10 @@ public class AWMap<K,V extends ICRDT<V>> implements ICRDT<AWMap<K, V>> {
         return values;
     }
 
+    public int size() {
+        return awSet.size();
+    }
+
     // Merge a AWMap with this one
     @Override
     public void merge(AWMap<K, V> other) {

@@ -5,7 +5,8 @@ import edu.sdle.crdt.ShoppingList;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class FileStorage implements Storage {
@@ -50,14 +51,16 @@ public class FileStorage implements Storage {
         }
     }
 
-    public ArrayList<String> getKeys() {
-        ArrayList<String> keys = new ArrayList<>();
+    public Set<UUID> getKeys() {
+        Set<UUID> keys = new HashSet<>();
         var files = dir.listFiles((_, name) -> name.endsWith(".json"));
 
         if (files != null) {
             for (File file : files) {
                 var k = file.getName().replace(".json", "");
-                keys.add(k);
+                try {
+                    keys.add(UUID.fromString(k)); // convert key String to UUID
+                } catch (IllegalArgumentException _) {}
             }
         }
 

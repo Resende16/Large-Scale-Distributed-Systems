@@ -25,6 +25,7 @@ public class CommsManager {
 
     private final int noWorkers;
     private boolean running = false;
+    private boolean frozen = false;
 
     public CommsManager(int noWorkers, int noBackupWorkers) {
         context = new ZContext();
@@ -69,6 +70,15 @@ public class CommsManager {
         poller.register(frontend, ZMQ.Poller.POLLIN);
 
         while (running) {
+            // For testing
+            if (frozen) {
+                try {
+                    Thread.sleep(15000);
+                    frozen = false;
+                } catch (InterruptedException _) {}
+                continue;
+            }
+
             poller.poll(1000);
 
             if (poller.pollin(1)) {
@@ -141,5 +151,9 @@ public class CommsManager {
 
     public ExecutorService getBackupPool() {
         return backupPool;
+    }
+
+    public void freeze() {
+        frozen = true;
     }
 }
