@@ -37,7 +37,7 @@ public class CommandHandler {
         registerCommand(new DeleteCommand());
         registerCommand(new PullCommand(this.comms));
         registerCommand(new PushCommand(this.comms));
-
+        registerCommand(new StatusCommand(this.comms));
     }
 
     public boolean registerCommand(Command command) {
