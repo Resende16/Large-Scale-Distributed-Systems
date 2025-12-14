@@ -1,6 +1,6 @@
 package edu.sdle;
+
 import edu.sdle.commands.*;
-import edu.sdle.storage.FileStorage;
 import edu.sdle.storage.Storage;
 
 import java.util.HashMap;
@@ -39,10 +39,10 @@ public class CommandHandler {
             return false;
 
         String commandName = command.getName();
-        if (commands.containsKey(commandName)) {
+
+        if (commands.containsKey(commandName))
             // Command already registered
             return false;
-        }
 
         commands.put(commandName, command);
         return true;

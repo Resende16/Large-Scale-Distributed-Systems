@@ -14,11 +14,11 @@ public class Client {
 
     public Client(String[] args) {
         String uidStr = null;
-        String userName = "Gunão da Lista";
+        String userName = "Steve";
 
         for (String arg : args) {
-            if (arg.startsWith("--uid=")) {
-                uidStr = arg.substring("--uid=".length());
+            if (arg.startsWith("--id=")) {
+                uidStr = arg.substring("--id=".length());
             } else if (arg.startsWith("--name=")) {
                 userName = arg.substring("--name=".length());
             }
@@ -34,7 +34,7 @@ public class Client {
 
         this.user = new User(userId, userName);
 
-        String userDir = "." + File.separator + "storage" + File.separator + user.id() + File.separator;
+        String userDir = "." + File.separator + "storage" + File.separator + user.id();
         Storage storage = new FileStorage(userDir);
         this.commandHandler = new CommandHandler(storage, this.user);
         this.commandHandler.registerCommands();

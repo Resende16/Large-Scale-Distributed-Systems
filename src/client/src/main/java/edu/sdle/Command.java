@@ -1,9 +1,6 @@
 package edu.sdle;
 
-import edu.sdle.storage.FileStorage;
 import edu.sdle.storage.Storage;
-
-import java.util.UUID;
 
 public abstract class Command {
 

@@ -9,7 +9,6 @@ import java.util.UUID;
 public class DefaultCommand extends Command {
 
     public DefaultCommand() {
-        // Name is redundant here, it's the default command
         super("", "");
     }
 
