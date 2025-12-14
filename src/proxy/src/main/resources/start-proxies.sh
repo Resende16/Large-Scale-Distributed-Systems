@@ -17,8 +17,7 @@ tmux new-session -d -s proxies
 
 tmux send-keys "java --enable-native-access=ALL-UNNAMED -jar ./proxy-dev.jar --address tcp://localhost:6000" C-m
 
-# Wait for the starting proxy to bootstrap
-sleep 3
+#sleep 3
 
 tmux split-window -h
 tmux send-keys "java --enable-native-access=ALL-UNNAMED -jar ./proxy-dev.jar --address tcp://localhost:6001" C-m

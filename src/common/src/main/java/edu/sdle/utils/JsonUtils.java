@@ -1,4 +1,4 @@
-package edu.sdle;
+package edu.sdle.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

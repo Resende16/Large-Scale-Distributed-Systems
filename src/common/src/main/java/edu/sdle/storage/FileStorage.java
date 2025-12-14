@@ -1,6 +1,6 @@
 package edu.sdle.storage;
 
-import edu.sdle.JsonUtils;
+import edu.sdle.utils.JsonUtils;
 import edu.sdle.crdt.ShoppingList;
 
 import java.io.*;
@@ -37,11 +37,6 @@ public class FileStorage implements Storage {
         return JsonUtils.fromJson(file, ShoppingList.class);
     }
 
-    private boolean putObj(ShoppingList obj) {
-        var file = new File(dir, obj.getId() + ".json");
-        return JsonUtils.toJson(obj, file);
-    }
-
     public String get(UUID id) {
         File file = new File(dir, id + ".json");
         if (!file.exists()) {
@@ -74,14 +69,25 @@ public class FileStorage implements Storage {
         if (thisObj == null)
             return false;
 
-        var currObj = getObj(id);
+        return putObj(thisObj);
+    }
+
+    // private utility does not merge
+    private boolean _putObj(ShoppingList obj) {
+        var file = new File(dir, obj.getId() + ".json");
+        return JsonUtils.toJson(obj, file);
+    }
+
+    // public method does merge
+    public boolean putObj(ShoppingList obj) {
+        var currObj = getObj(obj.getId());
 
         if (currObj != null) {
             // Merge first, then put
-            currObj.merge(thisObj);
-            return putObj(currObj);
+            currObj.merge(obj);
+            return _putObj(currObj);
         } else
-            return putObj(thisObj);
+            return _putObj(obj);
     }
 
     public boolean remove(UUID id) {

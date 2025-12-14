@@ -40,6 +40,12 @@ public class CommsManager {
 
     public void init(String bindAddress, RequestHandler handler) {
         running = true;
+
+        // Just in case
+        bindAddress = bindAddress
+                .replace("localhost:", "*:")
+                .replace("127.0.0.1:", "*:");
+
         frontend.bind(bindAddress);
         backend.bind("inproc://backend");
 

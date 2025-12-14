@@ -1,0 +1,7 @@
+package edu.sdle;
+
+import edu.sdle.hashring.DistributedHashRing;
+import edu.sdle.storage.Storage;
+
+public record NodeState(DistributedHashRing ring, int timeout, Storage storage, Node node) {
+}
