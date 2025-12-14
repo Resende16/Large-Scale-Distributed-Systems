@@ -33,10 +33,10 @@ public class Client {
         }
 
         this.user = new User(userId, userName);
-
+        int timeoutPerProxy=2000;
         String userDir = "." + File.separator + "storage" + File.separator + user.id();
         Storage storage = new FileStorage(userDir);
-        this.commandHandler = new CommandHandler(storage, this.user);
+        this.commandHandler = new CommandHandler(storage, this.user,timeoutPerProxy);
         this.commandHandler.registerCommands();
     }
 
