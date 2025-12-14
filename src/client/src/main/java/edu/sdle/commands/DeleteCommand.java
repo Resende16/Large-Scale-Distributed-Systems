@@ -29,12 +29,7 @@ public class DeleteCommand extends Command {
             return;
         }
 
-        boolean removed = false;
-        //TODO mudar
-
-        removed = storage.remove(listId);
-
-        if (!removed) {
+        if (!storage.remove(listId)) {
             System.out.println("Error: list not found or could not be deleted: " + listId);
         } else {
             System.out.println("List deleted: " + listId);
