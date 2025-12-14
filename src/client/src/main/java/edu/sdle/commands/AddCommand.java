@@ -42,24 +42,22 @@ public class AddCommand extends Command {
             return;
         }
 
-        try {
-            ShoppingList list = storage.get(listId);
-            if (list == null) {
-                System.out.println("Error: shopping list not found: " + listId);
-                return;
-            }
-            boolean success = list.addItem(itemName, max, user.id());
-            if (!success) {
-                System.out.println("Error: failed to add item. Item may already exist or invalid parameters.");
-                return;
-            }
 
-            storage.put(list);
-            System.out.println("[Storage] List saved.");
-
-        } catch (IOException e) {
-            System.out.println("§cError: failed to access storage: " + e.getMessage());
+        ShoppingList list = storage.getObj(listId);
+        if (list == null) {
+            System.out.println("Error: shopping list not found: " + listId);
+            return;
         }
+        boolean success = list.addItem(itemName, max, user.id());
+        if (!success) {
+            System.out.println("Error: failed to add item. Item may already exist or invalid parameters.");
+            return;
+        }
+
+        storage.putObj(list);
+        System.out.println("[Storage] List saved.");
+
+
     }
 
 

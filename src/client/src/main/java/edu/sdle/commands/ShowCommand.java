@@ -36,20 +36,18 @@ public class ShowCommand extends Command {
 
 
     private void handleShowAll(Storage storage) {
-        try {
-            List<ShoppingList> lists = storage.getAll();
-            if (lists.isEmpty()) {
-                System.out.println("No shopping lists found.");
-                return;
-            }
 
-            System.out.println("Shopping lists:");
-            for (ShoppingList list : lists) {
-                System.out.println("  - " + list.getName() + " [" + list.getId() + "]");
-            }
-        } catch (IOException e) {
-            System.out.println("Error: failed to access storage: " + e.getMessage());
+        var lists = storage.getKeys();
+        if (lists.isEmpty()) {
+            System.out.println("No shopping lists found.");
+            return;
         }
+
+        System.out.println("Shopping lists:");
+        for (var list : lists) {
+            System.out.println("  - " + list + "]");
+        }
+
     }
 
     private void handleShowOne(String idStr, Storage storage) {
@@ -61,31 +59,29 @@ public class ShowCommand extends Command {
             return;
         }
 
-        try {
-            ShoppingList list = storage.get(listId);
-            if (list == null) {
-                System.out.println("Error: shopping list not found: " + listId);
-                return;
-            }
 
-            System.out.println("List: " + list.getName() + " [" + list.getId() + "]");
-
-            AWMap<String, ItemQuantity> items = list.getItems();
-            if (items.entrySet().isEmpty()) {
-                System.out.println("  (no items)");
-                return;
-            }
-
-            for (var entry : items.entrySet()) {
-                String itemName = entry.key();
-                ItemQuantity qty = entry.value();
-                System.out.println("  - " + itemName + ": " +
-                        qty.getCurrent() + "/" + qty.getMax());
-            }
-
-        } catch (IOException e) {
-            System.out.println("Error: failed to access storage: " + e.getMessage());
+        ShoppingList list = storage.getObj(listId);
+        if (list == null) {
+            System.out.println("Error: shopping list not found: " + listId);
+            return;
         }
+
+        System.out.println("List: " + list.getName() + " [" + list.getId() + "]");
+
+        AWMap<String, ItemQuantity> items = list.getItems();
+        if (items.entrySet().isEmpty()) {
+            System.out.println("  (no items)");
+            return;
+        }
+
+        for (var entry : items.entrySet()) {
+            String itemName = entry.key();
+            ItemQuantity qty = entry.value();
+            System.out.println("  - " + itemName + ": " +
+                    qty.getCurrent() + "/" + qty.getMax());
+        }
+
+
     }
 }
 

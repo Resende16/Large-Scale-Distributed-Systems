@@ -31,11 +31,9 @@ public class DeleteCommand extends Command {
 
         boolean removed = false;
         //TODO mudar
-        try {
-            removed = storage.remove(listId);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+
+        removed = storage.remove(listId);
+
         if (!removed) {
             System.out.println("Error: list not found or could not be deleted: " + listId);
         } else {

@@ -23,15 +23,13 @@ public class CreateCommand extends Command {
 
         String listName = parts[1].trim();
 
-        try {
-            ShoppingList list = new ShoppingList(listName, user);
 
-            storage.put(list);
+        ShoppingList list = new ShoppingList(listName, user);
 
-            System.out.println("Created list: \"" + list.getName() + "\" [" + list.getId() + "]");
+        storage.putObj(list);
 
-        } catch (IOException e) {
-            System.out.println("Error: failed to save list: " + e.getMessage());
-        }
+        System.out.println("Created list: \"" + list.getName() + "\" [" + list.getId() + "]");
+
+
     }
 }

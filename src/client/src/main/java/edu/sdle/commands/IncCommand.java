@@ -34,33 +34,31 @@ public class IncCommand extends Command {
             return;
         }
 
-        try {
-            ShoppingList list = storage.get(listId);
-            if (list == null) {
-                System.out.println("Error: shopping list not found: " + listId);
-                return;
-            }
 
-            int done = list.incrementItem(itemName, incValue, user.id());
-
-            if (done == -1) {
-                System.out.println("Error: failed to increase item quantity. Item may not exist or parameters are invalid.");
-                return;
-            }
-
-
-            if (done < incValue) {
-                System.out.println("Reached max quantity. Increased only " + done);
-            } else {
-                System.out.println("Successfully increased " + itemName + " by " + done);
-            }
-
-            storage.put(list);
-            System.out.println("[Storage] List saved.");
-
-        } catch (IOException e) {
-            System.out.println("Error: failed to access storage: " + e.getMessage());
+        ShoppingList list = storage.getObj(listId);
+        if (list == null) {
+            System.out.println("Error: shopping list not found: " + listId);
+            return;
         }
+
+        int done = list.incrementItem(itemName, incValue, user.id());
+
+        if (done == -1) {
+            System.out.println("Error: failed to increase item quantity. Item may not exist or parameters are invalid.");
+            return;
+        }
+
+
+        if (done < incValue) {
+            System.out.println("Reached max quantity. Increased only " + done);
+        } else {
+            System.out.println("Successfully increased " + itemName + " by " + done);
+        }
+
+        storage.putObj(list);
+        System.out.println("[Storage] List saved.");
+
+
     }
 
 

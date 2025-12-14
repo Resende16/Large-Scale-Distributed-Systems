@@ -45,9 +45,7 @@ public class ReplyUtils {
         return msg;
     }
 
-    // Parse a ZMsg reply message and return
-    // true if the request succeeded
-    /*
+
     public static boolean didSucceed(ZMsg reply) {
         if (reply == null || reply.isEmpty())
             return false;
@@ -56,6 +54,6 @@ public class ReplyUtils {
         var code = ReplyCode.fromCode(codeStr);
         return code == SUCCESS;
     }
-    */
+
 
 }

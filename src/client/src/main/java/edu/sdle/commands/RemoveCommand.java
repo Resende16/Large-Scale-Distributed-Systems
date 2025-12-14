@@ -31,23 +31,21 @@ public class RemoveCommand extends Command {
             System.out.println("Error: invalid <listId> format.");
             return;
         }
-        try {
-            ShoppingList list = storage.get(listId);
-            if (list == null) {
-                System.out.println("Error: shopping list not found: " + listId);
-                return;
-            }
-            boolean success = list.removeItem(itemName);
-            if (!success) {
-                System.out.println("Error: failed to remove item. Item may not exist.");
-                return;
-            }
-            storage.put(list);
-            System.out.println("[Storage] List saved.");
 
-        } catch (IOException e) {
-            System.out.println("§cError: failed to access storage: " + e.getMessage());
+        ShoppingList list = storage.getObj(listId);
+        if (list == null) {
+            System.out.println("Error: shopping list not found: " + listId);
+            return;
         }
+        boolean success = list.removeItem(itemName);
+        if (!success) {
+            System.out.println("Error: failed to remove item. Item may not exist.");
+            return;
+        }
+        storage.putObj(list);
+        System.out.println("[Storage] List saved.");
+
+
     }
 
 
