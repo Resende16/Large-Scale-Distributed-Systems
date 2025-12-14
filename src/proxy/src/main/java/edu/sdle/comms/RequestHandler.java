@@ -1,237 +1,79 @@
 package edu.sdle.comms;
 
 import edu.sdle.*;
+import edu.sdle.comms.requests.RequestType;
 import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.Collections;
 import java.util.concurrent.*;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 public class RequestHandler {
-    private final ProxyState state;
-    private final ExecutorService backupPool;
     private final ThreadLocal<ZMQ.Socket> socket;
 
-    public RequestHandler(ZContext context,
-                          ProxyState state,
-                          ExecutorService backupPool) {
-        this.state = state;
-        this.backupPool = backupPool;
+    public RequestHandler(ZContext context) {
+        // Create thread-local socket to process
+        // client requests and avoid locks
 
-        // Create thread-local socket for server requests
         socket = ThreadLocal.withInitial(() -> {
-            ZMQ.Socket s = context.createSocket(SocketType.REQ);
-            s.setReqRelaxed(true);
-            s.setLinger(0);
+            ZMQ.Socket _socket = context.createSocket(SocketType.REQ);
 
-            var N = state.N();
-            var tmpN = N == 1 ? 2 : N;
-            var timeout = state.timeout();
-
-            // Send timeout is set such that a GET can
-            // succeed even if N-1 replicas are down
-            s.setReceiveTimeOut(timeout / tmpN);
-            s.setSendTimeOut(timeout - s.getReceiveTimeOut());
-            return s;
+            _socket.setReceiveTimeOut(10);
+            _socket.setSendTimeOut(3);
+            _socket.setReqRelaxed(true);
+            _socket.setLinger(0);
+            return _socket;
         });
     }
 
-    public ZMsg handleRequest(ZMsg msg) {
-        var typeStr = msg.pop().toString();
-        var type = RequestType.fromString(typeStr);
+    /**
+     * Handle a client request.
+     * @param msg Client request as a ZMsg
+     * @return Reply provided by a node
+     */
+    private ZMsg handle(ZMsg msg) {
+        var msgCopy = msg.duplicate();
+
+        // Check type
+        var typeStr = msg.popString();
+        var type = RequestType.parse(typeStr);
 
         if (type == null)
-            // Invalid type
             return ReplyUtils.failure();
 
-        // Parse args + hand off to handler
-        switch (type) {
-            case GET -> {
-                var key = parseUUID(msg);
-                if (key != null)
-                    return handleGetRequest(key);
-            }
-            case PUT -> {
-                var key = parseUUID(msg);
-                var value = msg.pop();
-                if (key != null && value != null)
-                    return handlePutRequest(key, value.toString());
-            }
-            case JOIN -> {
-                var nodeId = parseUUID(msg);
-                var nodeAddr = msg.pop();
-
-                if (nodeId != null && nodeAddr != null) {
-                    var node = new Node(nodeId, nodeAddr.toString());
-                    return handleJoinRequest(node);
-                }
-            }
-            case LEAVE -> {
-                var nodeId = parseUUID(msg);
-                var nodeAddr = msg.pop();
-
-                if (nodeId != null && nodeAddr != null) {
-                    var node = new Node(nodeId, nodeAddr.toString());
-                    return handleLeaveRequest(node);
-                }
-            }
-            case STATE ->  {
-                return handleStateRequest();
-            }
-        }
-
-        // Otherwise malformed
-        return ReplyUtils.failure();
+        // Forward to a seed server
+        return forward(msgCopy);
     }
 
-    public UUID parseUUID(ZMsg msg) {
-        if (msg.isEmpty())
-            return null;
+    /**
+     * Forward a client message to a seed node for processing.
+     * @param msg ZMsg to be forwarded
+     * @return Reply provided by the node
+     */
+    private ZMsg forward(ZMsg msg) {
+        var seedNodes = SeedNodeRegistry.getInstance().getSeedAddresses();
 
-        var bytes = msg.pop().getData();
-        if (bytes.length != 16)
-            // Invalid UUID
-            return null;
+        // Shuffle to avoid overloading the same seed server
+        Collections.shuffle(seedNodes);
 
-        return UUIDUtils.uuidFromBytes(bytes);
-    }
-
-    public ZMsg makeRequest(Node node, ZMsg msg) {
         var socket = this.socket.get();
-        var zmqAddr = node.getZMQAddress();
-        socket.connect(zmqAddr);
-        msg.send(socket);
 
-        var reply = ZMsg.recvMsg(socket);
-        socket.disconnect(zmqAddr);
-        return reply;
-    }
+        for (var node : seedNodes) {
+            socket.connect(node);
 
-    public ZMsg makeGetRequest(Node node, UUID key) {
-        System.out.println("< GET " + key + " to " + node.getZMQAddress());
+            // Forward + wait for reply
+            msg.send(socket);
 
-        ZMsg msg = new ZMsg();
-        msg.add(RequestType.GET.toString());
-        msg.add(UUIDUtils.uuidToBytes(key));
+            var reply = ZMsg.recvMsg(socket);
+            socket.disconnect(node);
 
-        return makeRequest(node, msg);
-    }
-
-    public ZMsg makePutRequest(Node node, UUID key, String value) {
-        System.out.println("< PUT " + key + " to " + node.getZMQAddress());
-
-        ZMsg msg = new ZMsg();
-        msg.add(RequestType.PUT.toString());
-        msg.add(UUIDUtils.uuidToBytes(key));
-        msg.add(value);
-
-        return makeRequest(node, msg);
-    }
-
-    public ZMsg handleGetRequest(UUID key) {
-        System.out.println("> GET " + key);
-
-        List<Node> replicas = state.ring().getNNodes(key, state.N());
-        if (replicas.isEmpty())
-            // Hash ring is empty?
-            return ReplyUtils.failure();
-
-        long deadline = System.currentTimeMillis() + state.timeout();
-
-        // Wait for the first successful response (sequential)
-        for (Node node : replicas) {
-            long remaining = deadline - System.currentTimeMillis();
-            if (remaining <= 0)
-                break; // Timed out
-
-            var reply = makeGetRequest(node, key);
-
-            if (ReplyUtils.didSucceed(reply) && !reply.isEmpty()) {
-                var payload = reply.pop();
-                return ReplyUtils.success(payload);
-            }
+            if (reply != null)
+                return reply;
         }
 
+        // Timed out
         return ReplyUtils.failure();
-    }
-
-    public ZMsg handlePutRequest(UUID key, String value) {
-        System.out.println("> PUT " + key);
-
-        List<Node> replicas = state.ring().getNNodes(key, state.N());
-        if (replicas.isEmpty())
-            return ReplyUtils.failure();
-
-        CompletionService<ZMsg> completionService =
-                new ExecutorCompletionService<>(backupPool);
-
-        // Submit PUT to all replicas concurrently
-        for (Node node : replicas)
-            completionService.submit(() -> makePutRequest(node, key, value));
-
-        long deadline = System.currentTimeMillis() + state.timeout();
-
-        // Wait for at least one success
-        try {
-            while (System.currentTimeMillis() < deadline) {
-                long remaining = deadline - System.currentTimeMillis();
-
-                Future<ZMsg> completed = completionService.poll(remaining, MILLISECONDS);
-                if (completed == null)
-                    break;
-
-                var r = completed.get();
-                if (ReplyUtils.didSucceed(r))
-                    return ReplyUtils.success();
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            //todo: Log
-            return ReplyUtils.failure();
-        }
-
-        return ReplyUtils.failure();
-    }
-
-    public ZMsg handleStateRequest() {
-        System.out.println("> STATE ");
-
-        var json = JsonUtils.toJson(state);
-        if (json == null)
-            return ReplyUtils.failure();
-
-        return ReplyUtils.success(json);
-    }
-
-    public ZMsg handleJoinRequest(Node node) {
-        System.out.println("> JOIN " + node.getZMQAddress());
-
-        var hashRing = state.ring();
-
-        // Node already in the ring
-        if (hashRing.containsNode(node.getId()))
-            return ReplyUtils.failure();
-
-        // issuer is the node itself?
-        hashRing.addNode(node, node.getId());
-
-        return ReplyUtils.success();
-    }
-
-    public ZMsg handleLeaveRequest(Node node) {
-        System.out.println("> LEAVE " + node.getZMQAddress());
-
-        var hashRing = state.ring();
-
-        // Node is not in the ring
-        if (!hashRing.containsNode(node.getId()))
-            return ReplyUtils.failure();
-
-        hashRing.removeNode(node.getId());
-        return ReplyUtils.success();
     }
 }

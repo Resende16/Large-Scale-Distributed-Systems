@@ -15,19 +15,23 @@ import java.util.UUID;
 /// A CRDT implementation of a hash ring
 public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     @JsonIgnore private final HashRing ring;
+    @JsonIgnore private final int N; // Replication factor
     @JsonProperty private final AWMap<UUID, LWWRegister<String>> members;
 
-    public DistributedHashRing(int vnodesPerNode) {
+    public DistributedHashRing(int vnodesPerNode, int N) {
         ring = new HashRing(vnodesPerNode);
         members = new AWMap<>();
+        this.N = N;
     }
 
     // Strictly for deserialization
     @JsonCreator
     private DistributedHashRing(
             @JsonProperty("members") AWMap<UUID, LWWRegister<String>> members,
-            @JsonProperty("vnodes") int vnodes
+            @JsonProperty("vnodes") int vnodes,
+            @JsonProperty("N") int N
     ) {
+        this.N = N;
         this.members = members;
         this.ring = new HashRing(vnodes);
 
@@ -48,6 +52,11 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
 
         var netAddress = members.get(nodeId);
         return new Node(nodeId, netAddress.value());
+    }
+
+    // Shortcut, since distributed version contains N
+    public List<Node> getNNodes(UUID key) {
+        return getNNodes(key, N);
     }
 
     /**
@@ -132,6 +141,15 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     @JsonProperty("vnodes")
     public int getVnodesPerNode() {
         return ring.getVnodesPerNode();
+    }
+
+    /**
+     * Get the replication factor of the distributed ring.
+     * @return Parameter N of the distributed hash ring
+     */
+    @JsonProperty("N")
+    public int getN() {
+        return N;
     }
 
     @Override

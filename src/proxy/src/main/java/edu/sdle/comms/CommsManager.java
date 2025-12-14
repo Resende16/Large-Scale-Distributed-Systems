@@ -19,13 +19,12 @@ public class CommsManager {
     private final Queue<byte[]> freeWorkers;
 
     private final ExecutorService workerPool;
-    private final ExecutorService backupPool;
     private Thread pollerThread;
 
     private final int noWorkers;
     private boolean running = false;
 
-    public CommsManager(int noWorkers, int noBackupWorkers) {
+    public CommsManager(int noWorkers) {
         context = new ZContext();
         this.noWorkers = noWorkers;
         freeWorkers = new LinkedList<>();
@@ -34,10 +33,9 @@ public class CommsManager {
         frontend = context.createSocket(SocketType.ROUTER);
         backend = context.createSocket(SocketType.ROUTER);
 
-        // Create thread pools
+        // Create thread pool
         var vfactory = Thread.ofVirtual().factory();
         workerPool = Executors.newFixedThreadPool(noWorkers, vfactory);
-        backupPool = Executors.newFixedThreadPool(noBackupWorkers, vfactory);
     }
 
     public void init(String bindAddress, RequestHandler handler) {
@@ -93,14 +91,11 @@ public class CommsManager {
     public void shutdown() {
         running = false;
         workerPool.shutdownNow();
-        backupPool.shutdownNow();
 
         // Wait for workers to finish
         try {
             if (!workerPool.awaitTermination(2, SECONDS))
                 System.err.println("Worker pool did not terminate in time!");
-            if (!backupPool.awaitTermination(2, SECONDS))
-                System.err.println("Backup pool did not terminate in time!");
 
             if (pollerThread != null)
                 pollerThread.join(2000);
@@ -118,9 +113,5 @@ public class CommsManager {
 
     public ZContext getContext() {
         return context;
-    }
-
-    public ExecutorService getBackupPool() {
-        return backupPool;
     }
 }

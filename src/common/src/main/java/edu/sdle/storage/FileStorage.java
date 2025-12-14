@@ -1,17 +1,15 @@
 package edu.sdle.storage;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.sdle.JsonUtils;
 import edu.sdle.crdt.ShoppingList;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.UUID;
 
 public class FileStorage implements Storage {
-
-    private final String dirName;
-    private final ObjectMapper mapper;
+    private final File dir;
 
     public FileStorage() {
         // Use current directory
@@ -22,64 +20,72 @@ public class FileStorage implements Storage {
         if (!dirName.endsWith(File.separator))
             dirName = dirName + File.separator;
 
-        this.dirName = dirName;
-        this.mapper = new ObjectMapper();
-
         // Create directory if needed
         File dir = new File(dirName);
         if (!dir.exists())
             dir.mkdirs();
+
+        this.dir = dir;
     }
 
-    public boolean put(ShoppingList list) {
+    public ShoppingList getObj(UUID id) {
+        var file = new File(dir, id + ".json");
+        if (!file.exists()) {
+            return null;
+        }
+
+        return JsonUtils.fromJson(file, ShoppingList.class);
+    }
+
+    private boolean putObj(ShoppingList obj) {
+        var file = new File(dir, obj.getId() + ".json");
+        return JsonUtils.toJson(obj, file);
+    }
+
+    public String get(UUID id) {
+        File file = new File(dir, id + ".json");
+        if (!file.exists()) {
+            return null;
+        }
+
         try {
-            File file = new File(dirName + list.getId() + ".json");
-            mapper.writeValue(file, list);
-            return true;
+            return Files.readString(file.toPath());
         } catch (IOException e) {
-            return false;
+            return null;
         }
     }
 
-    @Override
-    public boolean putJson(UUID key, String value) {
-        File file = new File(dirName + key + ".json");
+    public ArrayList<String> getKeys() {
+        ArrayList<String> keys = new ArrayList<>();
+        var files = dir.listFiles((_, name) -> name.endsWith(".json"));
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-            writer.write(value);
-            return true;
-        } catch (IOException e) {
-            return false;
+        if (files != null) {
+            for (File file : files) {
+                var k = file.getName().replace(".json", "");
+                keys.add(k);
+            }
         }
+
+        return keys;
+    }
+
+    public boolean put(UUID id, String value) {
+        var thisObj = JsonUtils.fromJson(value, ShoppingList.class);
+        if (thisObj == null)
+            return false;
+
+        var currObj = getObj(id);
+
+        if (currObj != null) {
+            // Merge first, then put
+            currObj.merge(thisObj);
+            return putObj(currObj);
+        } else
+            return putObj(thisObj);
     }
 
     public boolean remove(UUID id) {
-        File file = new File(dirName + id + ".json");
+        File file = new File(dir, id + ".json");
         return file.exists() && file.delete();
-    }
-
-    public ShoppingList get(UUID id) {
-        File file = new File(dirName + id + ".json");
-        if (!file.exists())
-            return null;
-
-        try {
-            return mapper.readValue(file, ShoppingList.class);
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
-    @Override
-    public String getAsJson(UUID id) {
-        File file = new File(dirName + id + ".json");
-        if (!file.exists())
-            return null;
-
-        try {
-            return Files.readString(Path.of(file.getAbsolutePath()));
-        } catch (IOException e) {
-            return null;
-        }
     }
 }
