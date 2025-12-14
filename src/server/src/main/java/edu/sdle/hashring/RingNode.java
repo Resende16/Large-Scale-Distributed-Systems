@@ -11,7 +11,8 @@ import java.util.UUID;
 import static edu.sdle.hashring.NodeStatus.*;
 
 public class RingNode implements ICRDT<RingNode> {
-    //private UUID nodeId;
+    @JsonProperty
+    private UUID id;
 
     // Node's zmq network address stored as a LWWRegister to
     // allow for a node to dynamically change its net address
@@ -20,7 +21,7 @@ public class RingNode implements ICRDT<RingNode> {
     private LWWRegister<String> address;
 
     @JsonProperty
-    private final LWWRegister<NodeStatus> status;
+    private final BiasedLWWRegister<NodeStatus> status;
 
     @JsonProperty
     private final LWWRegister<Integer> consecutiveFailures;
@@ -29,8 +30,9 @@ public class RingNode implements ICRDT<RingNode> {
     private final LWWRegister<Long> lastSeen; // in ms
 
     public RingNode(UUID nodeId, String nodeAddr) {
+        id = nodeId;
         this.address = new LWWRegister<>(nodeAddr, nodeId);
-        this.status = new LWWRegister<>(UP, nodeId);
+        this.status = new BiasedLWWRegister<>(UP, nodeId, nodeId);
         this.lastSeen = new LWWRegister<>(System.currentTimeMillis(), nodeId);
         this.consecutiveFailures = new LWWRegister<>(0, nodeId);
     }
@@ -39,7 +41,7 @@ public class RingNode implements ICRDT<RingNode> {
     @JsonCreator
     private RingNode(
             @JsonProperty("address") LWWRegister<String> address,
-            @JsonProperty("status") LWWRegister<NodeStatus> status,
+            @JsonProperty("status") BiasedLWWRegister<NodeStatus> status,
             @JsonProperty("lastSeen") LWWRegister<Long> lastSeen,
             @JsonProperty("consecutiveFailures") LWWRegister<Integer> consecutiveFailures
     ) {
@@ -47,6 +49,11 @@ public class RingNode implements ICRDT<RingNode> {
         this.status = status;
         this.lastSeen = lastSeen;
         this.consecutiveFailures = consecutiveFailures;
+    }
+
+    @JsonIgnore
+    public UUID getId() {
+        return id;
     }
 
     @JsonIgnore

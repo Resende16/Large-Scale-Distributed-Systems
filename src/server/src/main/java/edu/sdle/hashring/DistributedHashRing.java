@@ -173,6 +173,10 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
         return members.get(key);
     }
 
+    public Set<RingNode> getRingNodes() {
+        return members.values();
+    }
+
     // Clever way to easily copy a distributed ring
     //todo: Implement without relying on Json serialization
     public DistributedHashRing copy() {

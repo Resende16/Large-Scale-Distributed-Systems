@@ -10,6 +10,7 @@ import org.zeromq.ZMQ;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /// Periodic, anti-entropy "Gossiper"
@@ -19,11 +20,11 @@ public class Gossiper {
     private final ScheduledExecutorService scheduler;
 
     private final NodeState state;
-    private final String ownAddress;
 
-    public Gossiper(ZContext context, NodeState state, String ownAddress) {
+    private ScheduledFuture<?> gossipTask;
+
+    public Gossiper(ZContext context, NodeState state) {
         this.state = state;
-        this.ownAddress = ownAddress;
         this.random = new Random();
 
         this.socket = context.createSocket(SocketType.REQ);
@@ -39,6 +40,13 @@ public class Gossiper {
         });
     }
 
+    // For testing
+    public void freeze() {
+        // Cancel current gossip and start again in 15s
+        gossipTask.cancel(true);
+        scheduler.schedule(this::start, 15, TimeUnit.SECONDS);
+    }
+
     private Node selectRandomPeer() {
         var peers = state.ring().getNodes();
 
@@ -51,7 +59,13 @@ public class Gossiper {
     }
 
     public void start() {
-        scheduler.scheduleAtFixedRate(
+        if (gossipTask != null && !gossipTask.isCancelled()) {
+            gossipTask.cancel(false);
+        }
+
+        System.out.println("Starting gossiper!");
+
+        gossipTask = scheduler.scheduleAtFixedRate(
                 this::gossip,
                 2, 1, TimeUnit.SECONDS
         );

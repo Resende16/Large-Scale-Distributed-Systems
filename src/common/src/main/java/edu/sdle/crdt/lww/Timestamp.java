@@ -30,6 +30,10 @@ public class Timestamp {
         this.node = node;
     }
 
+    public UUID getNode() {
+        return node;
+    }
+
     public int getCount() {
         return count;
     }

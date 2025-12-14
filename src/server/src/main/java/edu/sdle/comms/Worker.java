@@ -17,12 +17,6 @@ public class Worker implements Runnable {
         this.handler = handler;
     }
 
-    @Override
-    public void run() {
-
-    }
-}
-/*
     public void run() {
         Thread.currentThread().setName("Worker-" + workerIndex);
         ZMQ.Socket worker = context.createSocket(SocketType.DEALER);
@@ -54,4 +48,3 @@ public class Worker implements Runnable {
         }
     }
 }
-*/

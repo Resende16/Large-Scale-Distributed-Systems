@@ -41,17 +41,17 @@ public class Server {
         manager.init(parser.address, handler);
 
         // Start gossiper
-        var gossiper = new Gossiper(manager.getContext(), state, parser.address);
+        var gossiper = new Gossiper(manager.getContext(), state);
         gossiper.start();
 
         // Main loop
-        loop(state, manager);
+        loop(state, manager, gossiper);
 
         gossiper.shutdown();
         manager.shutdown();
     }
 
-    private static void loop(NodeState state, CommsManager manager) {
+    private static void loop(NodeState state, CommsManager manager, Gossiper gossiper) {
         //System.out.println("Enter LEAVE to leave the ring and exit");
         System.out.println("Enter EXIT to exit\n");
 
@@ -72,6 +72,7 @@ public class Server {
                 if ("FREEZE".equals(input)) {
                     System.out.println("Freezing for 15 seconds!");
                     manager.freeze();
+                    gossiper.freeze();
                 }
 
                 // Leave the ring + exit

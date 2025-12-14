@@ -1,5 +1,6 @@
 package edu.sdle.utils;
 
+import edu.sdle.HintStorage;
 import edu.sdle.Node;
 import edu.sdle.hashring.DistributedHashRing;
 import edu.sdle.storage.Storage;
@@ -8,6 +9,8 @@ import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 
 import java.util.*;
+
+import static edu.sdle.hashring.NodeStatus.*;
 
 public class RingUtils {
     public static <T> List<T> difference(List<T> A, List<T> B) {
@@ -112,5 +115,42 @@ public class RingUtils {
 
         socket.close();
         context.destroy();
+    }
+
+    // Transfer all stored hints to node that are back "UP"
+    public static void transferHints(DistributedHashRing oldRing,
+                                     DistributedHashRing newRing,
+                                     HintStorage hintStorage,
+                                     ZMQ.Socket socket)
+    {
+        for (var node : newRing.getRingNodes()) {
+            var id = node.getId();
+
+            if (node.getStatus() != UP)
+                continue; // still down
+
+            var oldNode = oldRing.getRingNode(id);
+            if (oldNode == null)
+                continue; // wasn't in the ring before
+
+            if (oldNode.getStatus() == UP)
+                continue; // was already up before
+
+            var hints = hintStorage.getHintsForNode(id);
+            System.out.println("\nHINTS TO SEND " + hints.keySet() + "\n");
+            // Send hints
+            for (var entry : hints.entrySet()) {
+                var key = entry.getKey();
+                var value = entry.getValue();
+
+                //todo: fix
+                var reply = RequestUtils.
+                        makeRPutRequest(socket, newRing.getNode(id), key, value);
+                System.out.println("sent hint " + key + " to " + id + " reply " + reply);
+                // Unless timed out, delete hint from storage
+                if (reply != null)
+                    hintStorage.removeHintForNode(id, key);
+            }
+        }
     }
 }

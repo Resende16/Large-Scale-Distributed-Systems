@@ -50,6 +50,13 @@ public class GossipRequest extends Request {
                 state.node()
         );
 
+        // Transfer hints too
+        RingUtils.transferHints(oldRing,
+                state.ring(),
+                state.hintStorage(),
+                getSocket()
+        );
+
         return ReplyUtils.success();
     }
 }

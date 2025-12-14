@@ -72,10 +72,22 @@ public class CommsManager {
         while (running) {
             // For testing
             if (frozen) {
-                try {
-                    Thread.sleep(15000);
-                    frozen = false;
-                } catch (InterruptedException _) {}
+                long freezeEnd = System.currentTimeMillis() + 13000;
+
+                // Continue polling but discard all incoming messages
+                while (System.currentTimeMillis() < freezeEnd && running) {
+                    poller.poll(100);
+
+                    // Drain and discard frontend messages
+                    if (poller.pollin(1)) {
+                        ZMsg msg = ZMsg.recvMsg(frontend);
+                        System.out.println("Discard message during freeze!");
+                        msg.destroy(); // Discard the message
+                    }
+                }
+
+                frozen = false;
+                System.out.println("Freeze ended!");
                 continue;
             }
 

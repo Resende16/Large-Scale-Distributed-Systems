@@ -9,8 +9,8 @@ import java.util.UUID;
 /// A Last-writer-wins register
 public class LWWRegister<T> implements ICRDT<LWWRegister<T>> {
 
-    @JsonProperty private T value;
-    @JsonProperty private Timestamp timestamp;
+    @JsonProperty protected T value;
+    @JsonProperty protected Timestamp timestamp;
 
     public LWWRegister(T value, UUID node) {
         this.value = value;
@@ -26,6 +26,10 @@ public class LWWRegister<T> implements ICRDT<LWWRegister<T>> {
 
     public T value() {
         return value;
+    }
+
+    public Timestamp timestamp() {
+        return timestamp;
     }
 
     public void assign(T value, UUID node) {
