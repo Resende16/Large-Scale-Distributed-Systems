@@ -3,10 +3,8 @@ package edu.sdle.hashring;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import edu.sdle.Node;
 import edu.sdle.crdt.ICRDT;
 import edu.sdle.crdt.collections.AWMap;
-import edu.sdle.crdt.lww.LWWRegister;
 import edu.sdle.utils.JsonUtils;
 
 import java.util.*;
@@ -15,7 +13,7 @@ import java.util.*;
 public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     @JsonIgnore private final HashRing ring;
     @JsonIgnore private final int R; // Replication factor
-    @JsonProperty public final AWMap<UUID, RingNode> members;
+    @JsonProperty public final AWMap<UUID, Node> members;
 
     public DistributedHashRing(int vnodesPerNode, int R) {
         ring = new HashRing(vnodesPerNode);
@@ -26,7 +24,7 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     // For deserialization
     @JsonCreator
     private DistributedHashRing(
-            @JsonProperty("members") AWMap<UUID, RingNode> members,
+            @JsonProperty("members") AWMap<UUID, Node> members,
             @JsonProperty("vnodes") int vnodes,
             @JsonProperty("R") int R
     ) {
@@ -49,8 +47,7 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
         if (nodeId == null)
             return null;
 
-        var node = members.get(nodeId);
-        return new Node(nodeId, node.getZmqAddress());
+        return members.get(nodeId);
     }
 
     // Shortcut, since distributed version contains R
@@ -69,7 +66,7 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
         List<Node> nodes = new ArrayList<>(nodeIds.size());
 
         for (var id : nodeIds)
-            nodes.add(new Node(id, members.get(id).getZmqAddress()));
+            nodes.add(members.get(id));
         return nodes;
     }
 
@@ -80,22 +77,17 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
      * @param issuerNode ID of the node who issued the operation
      */
     public void addNode(Node node, UUID issuerNode) {
-        var _node = members.get(node.getId());
-
+        var currNode = members.get(node.getId());
         //mostly assuming node id is the same as the issuer
         //since nodes can only add themselves
 
-        if (_node != null)
-            // Simply update the network address
-            _node.updateAddress(node.getZMQAddress(), issuerNode);
+        if (currNode != null)
+            // Simply merge the two
+            currNode.merge(node);
         else {
-            members.put(node.getId(),
-                    new RingNode(node.getId(), node.getZMQAddress()),
-                    issuerNode
-            );
+            members.put(node.getId(), node, issuerNode);
             ring.addNode(node.getId());
         }
-
     }
 
     /**
@@ -157,24 +149,11 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     // could be a Set, but a List of more useful to the caller
     @JsonIgnore
     public List<Node> getNodes() {
-        List<Node> nodes = new ArrayList<>(members.size());
-
-        for (var entry : members.entrySet()) {
-            var nodeId = entry.key();
-            var node = entry.value();
-
-            nodes.add(new Node(nodeId, node.getZmqAddress()));
-        }
-
-        return nodes;
+        return new ArrayList<>(members.values());
     }
 
-    public RingNode getRingNode(UUID key) {
+    public Node getNodeInfo(UUID key) {
         return members.get(key);
-    }
-
-    public Set<RingNode> getRingNodes() {
-        return members.values();
     }
 
     // Clever way to easily copy a distributed ring

@@ -1,9 +1,9 @@
 package edu.sdle.comms.requests;
 
-import edu.sdle.Node;
 import edu.sdle.NodeState;
 import edu.sdle.comms.ReplyUtils;
 import edu.sdle.comms.RequestHandler;
+import edu.sdle.hashring.Node;
 import edu.sdle.utils.RequestUtils;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
@@ -55,8 +55,8 @@ public class PutRequest extends Request {
         var iter = replicas.iterator();
         while (iter.hasNext()) {
             Node replica = iter.next();
-            var ringNode = state.ring().getRingNode(replica.getId());
-            if (ringNode.getStatus() != UP) {
+          //  var ringNode = state.ring().getRingNode(replica.getId());
+            if (replica.getStatus() != UP) {
 
                 iter.remove();
                 //System.out.println("storing replica for unavailable " + replica.getId());
@@ -70,13 +70,14 @@ public class PutRequest extends Request {
 
         for (Node node : replicas)
             completionService.submit(() -> {
-                var ringNode = state.ring().getRingNode(node.getId());
+              //  var ringNode = state.ring().getRingNode(node.getId());
                 var reply = RequestUtils.makeRPutRequest(getSocket(), node, key, value);
-                if (reply == null) {
+                if (reply == null && node.getStatus() == UP) {
                     // timed out, mark as sus
                  //   System.out.println("[Marking " + node.getId() + " as suspected]");
-                    synchronized (ringNode) {
-                        ringNode.markSuspected(state.node().getId());
+                    synchronized (state.ring()) {
+                        System.out.println("mark as sus");
+                        node.markSuspected(state.node().getId());
                     }
                     state.hintStorage().storeHint(node.getId(), key, value);
 

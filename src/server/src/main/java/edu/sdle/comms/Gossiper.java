@@ -1,7 +1,7 @@
 package edu.sdle.comms;
 
-import edu.sdle.Node;
 import edu.sdle.NodeState;
+import edu.sdle.hashring.Node;
 import edu.sdle.utils.JsonUtils;
 import org.zeromq.SocketType;
 import org.zeromq.ZContext;
@@ -101,12 +101,10 @@ public class Gossiper {
             // Mark self as UP in case we went down temporarily
             // and were marked as SUSPECT by other nodes
             synchronized (state.ring()) {
-                var self = state.ring().getRingNode(state.node().getId());
-                if (self != null)
-                    self.keepAlive(state.node().getId());
+                state.node().keepAlive(state.node().getId());
             }
 
-            var address = peer.getZMQAddress();
+            var address = peer.getZmqAddress();
 
             socket.connect(address);
             socket.sendMore(RequestType.GOSSIP.name());

@@ -35,11 +35,7 @@ public class BiasedLWWRegister<T> extends LWWRegister<T> {
     public void merge(LWWRegister<T> other) {
         // Last person to set the register was the bias node,
         // so it takes precedence
-        if (other.timestamp().getNode().equals(biasNode)) {
-            value = other.value();
-            timestamp = other.timestamp();
-        }
-        // Otherwise follow normal logic
-        else super.merge(other);
+
+         super.merge(other);
     }
 }

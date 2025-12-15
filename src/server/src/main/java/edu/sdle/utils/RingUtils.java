@@ -1,8 +1,8 @@
 package edu.sdle.utils;
 
 import edu.sdle.HintStorage;
-import edu.sdle.Node;
 import edu.sdle.hashring.DistributedHashRing;
+import edu.sdle.hashring.Node;
 import edu.sdle.storage.Storage;
 import org.zeromq.SocketType;
 import org.zeromq.ZContext;
@@ -37,9 +37,9 @@ public class RingUtils {
     // old and new preference list; if there are newly responsible nodes,
     // those are added as keys to transfer along with the nodes to transfer to
     public static Map<UUID, List<Node>> getKeysToTransfer(DistributedHashRing oldRing,
-                                                    DistributedHashRing newRing,
-                                                    Set<UUID> keys,
-                                                    Node node)
+                                                          DistributedHashRing newRing,
+                                                          Set<UUID> keys,
+                                                          Node node)
     {
         var oldKeys = getKeyRangeForNode(oldRing, keys, node);
         //var newKeys = getKeyRangeForNode(newRing, keys, node);
@@ -125,22 +125,27 @@ public class RingUtils {
                                      HintStorage hintStorage,
                                      ZMQ.Socket socket)
     {
-        for (var node : newRing.getRingNodes()) {
+        for (var node : newRing.getNodes()) {
             var id = node.getId();
 
-            if (node.getStatus() != UP)
+            if (node.getStatus() != UP) {
+              //  System.out.println("still down " + node.getId());
                 continue; // still down
+            }
 
-            var oldNode = oldRing.getRingNode(id);
-            if (oldNode == null)
+            var oldNode = oldRing.getNodeInfo(id);
+            if (oldNode == null) {
+              //  System.out.println(node.getId() + " wasnt in ring before " + node.getId());
                 continue; // wasn't in the ring before
 
-            if (oldNode.getStatus() == UP)
+            }
+
+            if (oldNode.getStatus() == UP) {
+              //  System.out.println("was already up before " + node.getId());
                 continue; // was already up before
+            }
 
             var hints = hintStorage.getHintsForNode(id);
-
-            Node targetNode = new Node(id, node.getZmqAddress());
 
             var hintsSent = 0;
 
@@ -151,7 +156,7 @@ public class RingUtils {
 
                 //todo: fix
                 var reply = RequestUtils.
-                        makeRPutRequest(socket, targetNode, key, value);
+                        makeRPutRequest(socket, node, key, value);
 
                 // Unless timed out, delete hint from storage
                 if (reply != null) {

@@ -1,7 +1,7 @@
 package edu.sdle.utils;
 
-import edu.sdle.Node;
 import edu.sdle.comms.RequestType;
+import edu.sdle.hashring.Node;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
 
@@ -24,7 +24,7 @@ public class RequestUtils {
 
     // Send a ZMQ message to a Node
     public static ZMsg send(ZMQ.Socket socket, Node node, ZMsg msg) {
-        var zmqAddr = node.getZMQAddress();
+        var zmqAddr = node.getZmqAddress();
         socket.connect(zmqAddr);
 
         msg.send(socket);
@@ -36,8 +36,6 @@ public class RequestUtils {
 
     // Make a REPLICA_GET request to a Node
     public static ZMsg makeRGetRequest(ZMQ.Socket socket, Node node, UUID key) {
-        //System.out.println("< REPLICA_GET " + key + " to " + node.getZMQAddress());
-
         ZMsg msg = new ZMsg();
         msg.add(RequestType.REPLICA_GET.name());
         msg.add(UUIDUtils.uuidToBytes(key));
@@ -47,8 +45,6 @@ public class RequestUtils {
 
     // Make a REPLICA_PUT request to a Node
     public static ZMsg makeRPutRequest(ZMQ.Socket socket, Node node, UUID key, String value) {
-        //System.out.println("< REPLICA_PUT " + key + " to " + node.getZMQAddress());
-
         ZMsg msg = new ZMsg();
         msg.add(RequestType.REPLICA_PUT.name());
         msg.add(UUIDUtils.uuidToBytes(key));

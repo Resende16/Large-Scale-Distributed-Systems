@@ -1,8 +1,8 @@
 package edu.sdle.comms.requests;
 
-import edu.sdle.Node;
 import edu.sdle.NodeState;
 import edu.sdle.comms.ReplyUtils;
+import edu.sdle.hashring.Node;
 import edu.sdle.utils.RequestUtils;
 import org.zeromq.ZMQ;
 import org.zeromq.ZMsg;
@@ -48,11 +48,11 @@ public class GetRequest extends Request {
         // Wait for the first successful response
         for (Node node : replicas) {
             //todo: Migrate Node to RingNode
-            var ringNode = state.ring().getRingNode(node.getId());
-            if (ringNode.getStatus() != UP) {
+           // var ringNode = state.ring().getRingNode(node.getId());
+            if (node.getStatus() != UP) {
                 //System.out.println("skipped node, MARKED as sus");
-                synchronized (ringNode) { // ?
-                    ringNode.markSuspected(state.node().getId());
+                synchronized (state.ring()) { // ?
+                    node.markSuspected(state.node().getId());
                 }
                 // Skip it
                 continue;
@@ -62,9 +62,9 @@ public class GetRequest extends Request {
 
             if (reply == null) {
                 // timed out, mark as sus
-                synchronized (ringNode) {
+                synchronized (state.ring()) {
                   //  System.out.println("[Marking " + node.getId() + " as suspected]");
-                    ringNode.markSuspected(state.node().getId());
+                    node.markSuspected(state.node().getId());
                 }
             }
 

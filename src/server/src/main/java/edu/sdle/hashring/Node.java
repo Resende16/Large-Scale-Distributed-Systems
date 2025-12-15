@@ -5,12 +5,15 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.sdle.crdt.ICRDT;
 import edu.sdle.crdt.lww.LWWRegister;
+import edu.sdle.crdt.lww.Timestamp;
 
+import java.sql.Time;
+import java.util.Objects;
 import java.util.UUID;
 
 import static edu.sdle.hashring.NodeStatus.*;
 
-public class RingNode implements ICRDT<RingNode> {
+public class Node implements ICRDT<Node> {
     @JsonProperty
     private UUID id;
 
@@ -29,7 +32,7 @@ public class RingNode implements ICRDT<RingNode> {
     @JsonProperty
     private final LWWRegister<Long> lastSeen; // in ms
 
-    public RingNode(UUID nodeId, String nodeAddr) {
+    public Node(UUID nodeId, String nodeAddr) {
         id = nodeId;
         this.address = new LWWRegister<>(nodeAddr, nodeId);
         this.status = new BiasedLWWRegister<>(UP, nodeId, nodeId);
@@ -39,7 +42,7 @@ public class RingNode implements ICRDT<RingNode> {
 
     // For deserialization
     @JsonCreator
-    private RingNode(
+    private Node(
             @JsonProperty("address") LWWRegister<String> address,
             @JsonProperty("status") BiasedLWWRegister<NodeStatus> status,
             @JsonProperty("lastSeen") LWWRegister<Long> lastSeen,
@@ -54,6 +57,11 @@ public class RingNode implements ICRDT<RingNode> {
     @JsonIgnore
     public UUID getId() {
         return id;
+    }
+
+    @JsonIgnore
+    public Timestamp getTS(){
+        return status.timestamp();
     }
 
     @JsonIgnore
@@ -100,7 +108,7 @@ public class RingNode implements ICRDT<RingNode> {
     }
 
     @Override
-    public void merge(RingNode other) {
+    public void merge(Node other) {
         address.merge(other.address);
         status.merge(other.status);
         lastSeen.merge(other.lastSeen);
@@ -115,5 +123,21 @@ public class RingNode implements ICRDT<RingNode> {
                 ", failures=" + consecutiveFailures.value() +
                 ", lastSeen=" + (System.currentTimeMillis() - lastSeen.value()) + "ms ago" +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        Node node = (Node) o;
+        return id.equals(node.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

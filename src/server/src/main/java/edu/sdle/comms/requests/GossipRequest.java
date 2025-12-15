@@ -42,6 +42,11 @@ public class GossipRequest extends Request {
             state.ring().merge(ring);
         }
 
+        for (var node: state.ring().getNodes()) {
+            System.out.println(node.getZmqAddress() + " -> " + node.getStatus());
+        }
+        System.out.println();
+
         // Exchange data if necessary due to ring changes
         RingUtils.transferKeys(oldRing,
                 state.ring(),

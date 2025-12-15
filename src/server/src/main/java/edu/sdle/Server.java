@@ -3,6 +3,7 @@ package edu.sdle;
 import edu.sdle.comms.CommsManager;
 import edu.sdle.comms.Gossiper;
 import edu.sdle.comms.RequestHandler;
+import edu.sdle.hashring.Node;
 import edu.sdle.storage.FileStorage;
 import edu.sdle.utils.RingUtils;
 
@@ -18,7 +19,6 @@ public class Server {
             return;
 
         // Create node state
-        var node = new Node(parser.id, parser.address);
         var storage = new FileStorage("data/" + parser.id);
         var hintStorage = new HintStorage("data/" + parser.id + "/hints");
 
@@ -26,13 +26,26 @@ public class Server {
         if (ring == null)
             return; // Failed to bootstrap
 
+        var node = new Node(parser.id, parser.address);
+
         // Add self to ring
         ring.addNode(node, node.getId());
+
+        node = ring.getNodeInfo(node.getId());
+
+        node.keepAlive(node.getId());
+
 
         var state = new NodeState(ring, storage, hintStorage, node);
 
         // Print node parameters
         parser.printArgs();
+
+        System.out.println("on join");
+        for (var _node : ring.getNodes()) {
+            System.out.println(_node.getZmqAddress() + " -> " + _node.getStatus() + " > " + _node.getTS());
+        }
+        System.out.println("\n\n");
 
         var manager = new CommsManager(parser.workerThreads, parser.backupThreads);
         var handler = new RequestHandler(state);
