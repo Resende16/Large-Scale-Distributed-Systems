@@ -55,6 +55,8 @@ public class RingUtils {
             if (!diff.isEmpty())
                 result.put(key, diff);
         }
+
+        result.remove(node.getId()); // remove self just in case
         return result;
     }
 
@@ -139,7 +141,9 @@ public class RingUtils {
             var hints = hintStorage.getHintsForNode(id);
 
             Node targetNode = new Node(id, node.getZmqAddress());
-            System.out.println("\nHINTS TO SEND " + hints.keySet() + "\n");
+
+            var hintsSent = 0;
+
             // Send hints
             for (var entry : hints.entrySet()) {
                 var key = entry.getKey();
@@ -148,11 +152,16 @@ public class RingUtils {
                 //todo: fix
                 var reply = RequestUtils.
                         makeRPutRequest(socket, targetNode, key, value);
-                System.out.println("sent hint " + key + " to " + id + " reply " + reply);
+
                 // Unless timed out, delete hint from storage
-                if (reply != null)
+                if (reply != null) {
                     hintStorage.removeHintForNode(id, key);
+                    hintsSent++;
+                }
             }
+
+            if (hintsSent > 0)
+                System.out.println("[Sent " + hintsSent + " hints to " + node.getId() + "]");
         }
     }
 }

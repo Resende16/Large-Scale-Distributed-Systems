@@ -59,7 +59,7 @@ public class PutRequest extends Request {
             if (ringNode.getStatus() != UP) {
 
                 iter.remove();
-                System.out.println("storing replica for unavailable " + replica.getId());
+                //System.out.println("storing replica for unavailable " + replica.getId());
                 state.hintStorage().storeHint(replica.getId(), key, value);
             }
         }
@@ -74,7 +74,7 @@ public class PutRequest extends Request {
                 var reply = RequestUtils.makeRPutRequest(getSocket(), node, key, value);
                 if (reply == null) {
                     // timed out, mark as sus
-                    System.out.println("MARKING SUS + storing hint" + node.getId());
+                 //   System.out.println("[Marking " + node.getId() + " as suspected]");
                     synchronized (ringNode) {
                         ringNode.markSuspected(state.node().getId());
                     }

@@ -50,7 +50,7 @@ public class GetRequest extends Request {
             //todo: Migrate Node to RingNode
             var ringNode = state.ring().getRingNode(node.getId());
             if (ringNode.getStatus() != UP) {
-                System.out.println("skipped node, MARKED as sus");
+                //System.out.println("skipped node, MARKED as sus");
                 synchronized (ringNode) { // ?
                     ringNode.markSuspected(state.node().getId());
                 }
@@ -63,7 +63,7 @@ public class GetRequest extends Request {
             if (reply == null) {
                 // timed out, mark as sus
                 synchronized (ringNode) {
-                    System.out.println("MARKING SUS " + node.getId());
+                  //  System.out.println("[Marking " + node.getId() + " as suspected]");
                     ringNode.markSuspected(state.node().getId());
                 }
             }
