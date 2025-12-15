@@ -42,7 +42,7 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
      * @param key Key to hash
      * @return A Node object, or null if the ring is empty
      */
-    public Node getNode(UUID key) {
+    public Node getNodeForKey(UUID key) {
         var nodeId = ring.getNode(key);
         if (nodeId == null)
             return null;
@@ -71,22 +71,20 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
     }
 
     /**
-     * Add a node to the hash ring. If a node with the same id is
-     * already in the ring, its network address will be updated.
-     * @param node Node to be added
+     * Add a node to the hash ring.
+     * @param nodeId ID of the node to add
+     * @param address ZMQ address of the node to add
      * @param issuerNode ID of the node who issued the operation
      */
-    public void addNode(Node node, UUID issuerNode) {
-        var currNode = members.get(node.getId());
+    public void addNode(UUID nodeId, String address, UUID issuerNode) {
+        var currNode = members.get(nodeId);
         //mostly assuming node id is the same as the issuer
         //since nodes can only add themselves
 
-        if (currNode != null)
-            // Simply merge the two
-            currNode.merge(node);
-        else {
-            members.put(node.getId(), node, issuerNode);
-            ring.addNode(node.getId());
+        if (currNode == null) {
+            Node node = new Node(nodeId, address);
+            members.put(nodeId, node, issuerNode);
+            ring.addNode(nodeId);
         }
     }
 
@@ -152,7 +150,7 @@ public class DistributedHashRing implements ICRDT<DistributedHashRing> {
         return new ArrayList<>(members.values());
     }
 
-    public Node getNodeInfo(UUID key) {
+    public Node getNode(UUID key) {
         return members.get(key);
     }
 

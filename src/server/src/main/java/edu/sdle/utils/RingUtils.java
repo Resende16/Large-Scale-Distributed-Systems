@@ -128,22 +128,15 @@ public class RingUtils {
         for (var node : newRing.getNodes()) {
             var id = node.getId();
 
-            if (node.getStatus() != UP) {
-              //  System.out.println("still down " + node.getId());
+            if (node.getStatus() != UP)
                 continue; // still down
-            }
 
-            var oldNode = oldRing.getNodeInfo(id);
-            if (oldNode == null) {
-              //  System.out.println(node.getId() + " wasnt in ring before " + node.getId());
+            var oldNode = oldRing.getNode(id);
+            if (oldNode == null)
                 continue; // wasn't in the ring before
 
-            }
-
-            if (oldNode.getStatus() == UP) {
-              //  System.out.println("was already up before " + node.getId());
+            if (oldNode.getStatus() == UP)
                 continue; // was already up before
-            }
 
             var hints = hintStorage.getHintsForNode(id);
 
@@ -154,7 +147,6 @@ public class RingUtils {
                 var key = entry.getKey();
                 var value = entry.getValue();
 
-                //todo: fix
                 var reply = RequestUtils.
                         makeRPutRequest(socket, node, key, value);
 

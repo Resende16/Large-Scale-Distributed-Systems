@@ -10,8 +10,9 @@ import org.zeromq.ZMQ;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import static edu.sdle.hashring.NodeStatus.*;
 
 /// Periodic, anti-entropy "Gossiper"
 public class Gossiper {
@@ -20,8 +21,6 @@ public class Gossiper {
     private final ScheduledExecutorService scheduler;
 
     private final NodeState state;
-
-    private ScheduledFuture<?> gossipTask;
 
     public Gossiper(ZContext context, NodeState state) {
         this.state = state;
@@ -40,17 +39,14 @@ public class Gossiper {
         });
     }
 
-    // For testing
-    public void freeze() {
-        // Cancel current gossip and start again in 15s
-        gossipTask.cancel(true);
-        scheduler.schedule(this::start, 15, TimeUnit.SECONDS);
-    }
-
     private Node selectRandomPeer() {
         var peers = state.ring().getNodes();
 
-        peers.remove(state.node()); // remove self
+        // Remove self + filter for healthy (UP) nodes only
+        peers.removeIf(node ->
+                node.getId().equals(state.node().getId()) ||
+                        node.getStatus() != UP
+        );
 
         if (peers.isEmpty())
             return null;
@@ -59,13 +55,7 @@ public class Gossiper {
     }
 
     public void start() {
-        if (gossipTask != null && !gossipTask.isCancelled()) {
-            gossipTask.cancel(false);
-        }
-
-        System.out.println("Starting gossiper!");
-
-        gossipTask = scheduler.scheduleAtFixedRate(
+        scheduler.scheduleAtFixedRate(
                 this::gossip,
                 2, 1, TimeUnit.SECONDS
         );
@@ -110,8 +100,11 @@ public class Gossiper {
             socket.sendMore(RequestType.GOSSIP.name());
             socket.send(ringJson);
 
-            socket.recvStr();
-            //todo: Detect failures based on reply
+            var reply = socket.recvStr();
+
+            // If timed out, mark as sus
+            if (reply == null)
+                peer.markSuspected(state.node().getId());
 
             socket.disconnect(address);
 

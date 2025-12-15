@@ -25,7 +25,6 @@ public class CommsManager {
 
     private final int noWorkers;
     private boolean running = false;
-    private boolean frozen = false;
 
     public CommsManager(int noWorkers, int noBackupWorkers) {
         context = new ZContext();
@@ -70,43 +69,6 @@ public class CommsManager {
         poller.register(frontend, ZMQ.Poller.POLLIN);
 
         while (running) {
-            // For testing
-            if (frozen) {
-                System.out.println("Freeze started!");
-                long freezeEnd = System.currentTimeMillis() + 13000;
-
-                // Drain any messages that arrived before freeze
-                drainMessages(poller);
-
-                // Continue polling but discard all incoming messages
-                while (System.currentTimeMillis() < freezeEnd && running) {
-                    poller.poll(100);
-
-                    // Drain and discard frontend messages
-                    if (poller.pollin(1)) {
-                        ZMsg msg = ZMsg.recvMsg(frontend);
-                        System.out.println("Discarding message during freeze!");
-                        msg.destroy();
-                    }
-
-                    // Keep workers alive but discard their responses
-                    if (poller.pollin(0)) {
-                        ZMsg msg = ZMsg.recvMsg(backend);
-                        var workerId = msg.pop().getData();
-
-                        freeWorkers.offer(workerId);
-                        msg.destroy();
-                    }
-                }
-
-                // Final drain after freeze ends to ensure clean state
-                drainMessages(poller);
-
-                frozen = false;
-                System.out.println("Freeze ended!");
-                continue;
-            }
-
             poller.poll(1000);
 
             if (poller.pollin(1)) {
@@ -179,32 +141,5 @@ public class CommsManager {
 
     public ExecutorService getBackupPool() {
         return backupPool;
-    }
-
-    public void freeze() {
-        frozen = true;
-    }
-
-    private void drainMessages(ZMQ.Poller poller) {
-        // Non-blocking drain of any buffered messages
-        while (true) {
-            poller.poll(0); // 0 timeout = non-blocking
-
-            boolean drained = true;
-
-            if (poller.pollin(1)) {
-                ZMsg msg = ZMsg.recvMsg(frontend);
-                msg.destroy();
-                drained = false;
-            }
-
-            if (poller.pollin(0)) {
-                ZMsg msg = ZMsg.recvMsg(backend);
-                msg.destroy();
-                drained = false;
-            }
-
-            if (drained) break;
-        }
     }
 }

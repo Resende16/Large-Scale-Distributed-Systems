@@ -5,9 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.sdle.crdt.ICRDT;
 import edu.sdle.crdt.lww.LWWRegister;
-import edu.sdle.crdt.lww.Timestamp;
 
-import java.sql.Time;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -24,7 +22,7 @@ public class Node implements ICRDT<Node> {
     private LWWRegister<String> address;
 
     @JsonProperty
-    private final BiasedLWWRegister<NodeStatus> status;
+    private final LWWRegister<NodeStatus> status;
 
     @JsonProperty
     private final LWWRegister<Integer> consecutiveFailures;
@@ -35,7 +33,7 @@ public class Node implements ICRDT<Node> {
     public Node(UUID nodeId, String nodeAddr) {
         id = nodeId;
         this.address = new LWWRegister<>(nodeAddr, nodeId);
-        this.status = new BiasedLWWRegister<>(UP, nodeId, nodeId);
+        this.status = new LWWRegister<>(UP, nodeId);
         this.lastSeen = new LWWRegister<>(System.currentTimeMillis(), nodeId);
         this.consecutiveFailures = new LWWRegister<>(0, nodeId);
     }
@@ -44,7 +42,7 @@ public class Node implements ICRDT<Node> {
     @JsonCreator
     private Node(
             @JsonProperty("address") LWWRegister<String> address,
-            @JsonProperty("status") BiasedLWWRegister<NodeStatus> status,
+            @JsonProperty("status") LWWRegister<NodeStatus> status,
             @JsonProperty("lastSeen") LWWRegister<Long> lastSeen,
             @JsonProperty("consecutiveFailures") LWWRegister<Integer> consecutiveFailures
     ) {
@@ -57,11 +55,6 @@ public class Node implements ICRDT<Node> {
     @JsonIgnore
     public UUID getId() {
         return id;
-    }
-
-    @JsonIgnore
-    public Timestamp getTS(){
-        return status.timestamp();
     }
 
     @JsonIgnore
