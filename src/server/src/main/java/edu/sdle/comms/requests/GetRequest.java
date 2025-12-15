@@ -43,27 +43,16 @@ public class GetRequest extends Request {
         if (replicas.isEmpty())
             return ReplyUtils.failure();
 
-        //todo: return SUCCESS if stored hint
-
         // Wait for the first successful response
         for (Node node : replicas) {
-            //todo: Migrate Node to RingNode
-           // var ringNode = state.ring().getRingNode(node.getId());
-            if (node.getStatus() != UP) {
-                //System.out.println("skipped node, MARKED as sus");
-                synchronized (state.ring()) { // ?
-                    node.markDown(state.node().getId());
-                }
-                // Skip it
-                continue;
-            }
+            if (node.getStatus() != UP)
+                continue; // skip nodes that are down
 
             var reply = RequestUtils.makeRGetRequest(getSocket(), node, key);
 
             if (reply == null) {
-                // timed out, mark as sus
+                // Timed out, mark as down
                 synchronized (state.ring()) {
-                  //  System.out.println("[Marking " + node.getId() + " as suspected]");
                     node.markDown(state.node().getId());
                 }
             }

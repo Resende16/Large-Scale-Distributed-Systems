@@ -26,7 +26,7 @@ tmux new-session -d -s nodes
 tmux send-keys "java --enable-native-access=ALL-UNNAMED -jar ./server-dev.jar --id $UUID1 --address tcp://localhost:5555" C-m
 
 # Wait for bootstrapping
-sleep 2
+sleep 4
 
 tmux split-window -h
 tmux send-keys "java --enable-native-access=ALL-UNNAMED -jar ./server-dev.jar --id $UUID2 --address tcp://localhost:5556" C-m

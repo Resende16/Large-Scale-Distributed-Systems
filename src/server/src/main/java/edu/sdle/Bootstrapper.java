@@ -21,7 +21,7 @@ public class Bootstrapper {
         ZMQ.Socket socket = context.createSocket(SocketType.REQ);
 
         socket.setSendTimeOut(1000);
-        socket.setReceiveTimeOut(3000);
+        socket.setReceiveTimeOut(750);
         socket.setReqRelaxed(true);
         socket.setLinger(0);
 

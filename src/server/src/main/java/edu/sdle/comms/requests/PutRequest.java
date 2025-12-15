@@ -51,15 +51,13 @@ public class PutRequest extends Request {
 
         replicas.remove(state.node());
 
-        // Remove unavailable replicas
+        // Remove unavailable replicas + store hint
         var iter = replicas.iterator();
         while (iter.hasNext()) {
             Node replica = iter.next();
-          //  var ringNode = state.ring().getRingNode(replica.getId());
-            if (replica.getStatus() != UP) {
 
+            if (replica.getStatus() != UP) {
                 iter.remove();
-                //System.out.println("storing replica for unavailable " + replica.getId());
                 state.hintStorage().storeHint(replica.getId(), key, value);
             }
         }
@@ -70,17 +68,15 @@ public class PutRequest extends Request {
 
         for (Node node : replicas)
             completionService.submit(() -> {
-              //  var ringNode = state.ring().getRingNode(node.getId());
-                var reply = RequestUtils.makeRPutRequest(getSocket(), node, key, value);
+                var reply = RequestUtils
+                        .makeRPutRequest(getSocket(), node, key, value);
+
                 if (reply == null && node.getStatus() == UP) {
-                    // timed out, mark as sus
-                 //   System.out.println("[Marking " + node.getId() + " as suspected]");
+                    // Timed out, mark as down + store hint
                     synchronized (state.ring()) {
-                        System.out.println("mark as sus");
                         node.markDown(state.node().getId());
                     }
                     state.hintStorage().storeHint(node.getId(), key, value);
-
                 }
                 return reply;
             });
