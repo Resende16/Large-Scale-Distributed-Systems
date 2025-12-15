@@ -104,7 +104,7 @@ public class Gossiper {
 
             // If timed out, mark as sus
             if (reply == null)
-                peer.markSuspected(state.node().getId());
+                peer.markDown(state.node().getId());
 
             socket.disconnect(address);
 

@@ -77,7 +77,7 @@ public class PutRequest extends Request {
                  //   System.out.println("[Marking " + node.getId() + " as suspected]");
                     synchronized (state.ring()) {
                         System.out.println("mark as sus");
-                        node.markSuspected(state.node().getId());
+                        node.markDown(state.node().getId());
                     }
                     state.hintStorage().storeHint(node.getId(), key, value);
 

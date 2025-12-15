@@ -52,7 +52,7 @@ public class GetRequest extends Request {
             if (node.getStatus() != UP) {
                 //System.out.println("skipped node, MARKED as sus");
                 synchronized (state.ring()) { // ?
-                    node.markSuspected(state.node().getId());
+                    node.markDown(state.node().getId());
                 }
                 // Skip it
                 continue;
@@ -64,7 +64,7 @@ public class GetRequest extends Request {
                 // timed out, mark as sus
                 synchronized (state.ring()) {
                   //  System.out.println("[Marking " + node.getId() + " as suspected]");
-                    node.markSuspected(state.node().getId());
+                    node.markDown(state.node().getId());
                 }
             }
 

@@ -24,32 +24,20 @@ public class Node implements ICRDT<Node> {
     @JsonProperty
     private final LWWRegister<NodeStatus> status;
 
-    @JsonProperty
-    private final LWWRegister<Integer> consecutiveFailures;
-
-    @JsonProperty
-    private final LWWRegister<Long> lastSeen; // in ms
-
     public Node(UUID nodeId, String nodeAddr) {
         id = nodeId;
         this.address = new LWWRegister<>(nodeAddr, nodeId);
         this.status = new LWWRegister<>(UP, nodeId);
-        this.lastSeen = new LWWRegister<>(System.currentTimeMillis(), nodeId);
-        this.consecutiveFailures = new LWWRegister<>(0, nodeId);
     }
 
     // For deserialization
     @JsonCreator
     private Node(
             @JsonProperty("address") LWWRegister<String> address,
-            @JsonProperty("status") LWWRegister<NodeStatus> status,
-            @JsonProperty("lastSeen") LWWRegister<Long> lastSeen,
-            @JsonProperty("consecutiveFailures") LWWRegister<Integer> consecutiveFailures
+            @JsonProperty("status") LWWRegister<NodeStatus> status
     ) {
         this.address = address;
         this.status = status;
-        this.lastSeen = lastSeen;
-        this.consecutiveFailures = consecutiveFailures;
     }
 
     @JsonIgnore
@@ -67,16 +55,6 @@ public class Node implements ICRDT<Node> {
         return status.value();
     }
 
-    @JsonIgnore
-    public long getLastSeen() {
-        return lastSeen.value();
-    }
-
-    @JsonIgnore
-    public int getConsecutiveFailures() {
-        return consecutiveFailures.value();
-    }
-
     public void updateAddress(String newAddr, UUID issuerNode) {
         address.assign(newAddr, issuerNode);
     }
@@ -84,28 +62,17 @@ public class Node implements ICRDT<Node> {
     // same as marking UP
     public void keepAlive(UUID issuerNode) {
         status.assign(UP, issuerNode);
-        lastSeen.assign(System.currentTimeMillis(), issuerNode);
-        consecutiveFailures.assign(0, issuerNode);
-    }
-
-    public void markSuspected(UUID issuerNode) {
-        if (status.value() == UP)
-            status.assign(SUSPECTED, issuerNode);
-
-        consecutiveFailures.assign(consecutiveFailures.value() +1, issuerNode);
     }
 
     public void markDown(UUID issuerNode) {
-        status.assign(DOWN, issuerNode);
-        consecutiveFailures.assign(consecutiveFailures.value() +1, issuerNode);
+        if (status.value() == UP)
+            status.assign(DOWN, issuerNode);
     }
 
     @Override
     public void merge(Node other) {
         address.merge(other.address);
         status.merge(other.status);
-        lastSeen.merge(other.lastSeen);
-        consecutiveFailures.merge(other.consecutiveFailures);
     }
 
     @Override
@@ -113,8 +80,6 @@ public class Node implements ICRDT<Node> {
         return "RingNode{" +
                 "address=" + address.value() +
                 ", status=" + status.value() +
-                ", failures=" + consecutiveFailures.value() +
-                ", lastSeen=" + (System.currentTimeMillis() - lastSeen.value()) + "ms ago" +
                 '}';
     }
 
