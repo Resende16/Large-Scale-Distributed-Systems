@@ -45,7 +45,7 @@ public class ShowCommand extends Command {
 
         System.out.println("Shopping lists:");
         for (var list : lists) {
-            System.out.println("  - " + list + "]");
+            System.out.println("  - " + list );
         }
 
     }

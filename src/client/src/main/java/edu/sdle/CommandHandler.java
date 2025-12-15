@@ -1,6 +1,7 @@
 package edu.sdle;
 
 import edu.sdle.commands.*;
+import edu.sdle.comms.CommsManager;
 import edu.sdle.storage.Storage;
 
 import java.util.HashMap;
@@ -12,11 +13,13 @@ public class CommandHandler {
     private Command defaultCommand;
     private final User user;
     private final Storage storage;
+    private final CommsManager comms;
 
-    public CommandHandler(Storage storage, User user) {
+    public CommandHandler(Storage storage, User user,int timeoutPerProxy) {
         this.storage = storage;
         this.user = user;
         this.commands = new HashMap<>();
+        this.comms= new CommsManager(timeoutPerProxy);
     }
 
     // Registers all server commands
@@ -32,6 +35,9 @@ public class CommandHandler {
         registerCommand(new ShowCommand());
         registerCommand(new CreateCommand());
         registerCommand(new DeleteCommand());
+        registerCommand(new PullCommand(this.comms));
+        registerCommand(new PushCommand(this.comms));
+        registerCommand(new StatusCommand(this.comms));
     }
 
     public boolean registerCommand(Command command) {

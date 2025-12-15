@@ -118,4 +118,29 @@ public class CommsManager {
         var reply = sendToCloud(msg);
         return ReplyUtils.didSucceed(reply);
     }
+
+
+    public java.util.Map<String, Boolean> testProxyConnectivity() {
+        var status = new java.util.HashMap<String, Boolean>();
+
+        for (var proxy : proxies) {
+            try {
+                socket.connect(proxy);
+
+                socket.setReceiveTimeOut(500);
+                ZMsg ping = new ZMsg();
+                ping.add("PING");
+                ping.duplicate().send(socket);
+
+                ZMsg reply = ZMsg.recvMsg(socket);
+                socket.disconnect(proxy);
+
+                status.put(proxy, reply != null);
+            } catch (Exception e) {
+                status.put(proxy, false);
+            }
+        }
+
+        return status;
+    }
 }
