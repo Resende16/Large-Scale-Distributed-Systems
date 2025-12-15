@@ -25,22 +25,24 @@ public class PushCommand extends Command {
             return;
         }
 
+        UUID id = null;
         try {
-            UUID id = UUID.fromString(parts[1]);
-            ShoppingList list = storage.getObj(id);
-            if (list == null) {
-                System.out.println("No local list with id " + id);
-                return;
-            }
-
-            boolean ok = comms.put(list);
-            if (ok) {
-                System.out.println("Pushed list " + id + " to cloud.");
-            } else {
-                System.out.println("Failed to push list " + id + " to cloud.");
-            }
+            id = UUID.fromString(parts[1]);
         } catch (IllegalArgumentException e) {
             System.out.println("Invalid UUID. Usage: /push <list_id>");
+            return;
+        }
+        ShoppingList list = storage.getObj(id);
+        if (list == null) {
+            System.out.println("No local list with id " + id);
+            return;
+        }
+
+        boolean ok = comms.put(list);
+        if (ok) {
+            System.out.println("Pushed list " + id + " to cloud.");
+        } else {
+            System.out.println("Failed to push list " + id + " to cloud.");
         }
     }
 }

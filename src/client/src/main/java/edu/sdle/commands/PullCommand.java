@@ -25,26 +25,30 @@ public class PullCommand extends Command {
             return;
         }
 
+        UUID id = null;
         try {
-            UUID id = UUID.fromString(parts[1]);
-            ShoppingList remote = comms.getObj(id);
-            if (remote == null) {
-                System.out.println("Cloud does not have list " + id + " or request failed.");
-                return;
-            }
-
-            ShoppingList local = storage.getObj(id);
-
-            if (local == null) {
-                storage.putObj(remote);
-                System.out.println("Pulled list " + id + " (no local version existed).");
-            } else {
-                local.merge(remote);
-                storage.putObj(local);
-                System.out.println("Pulled and merged list " + id + " with local version.");
-            }
+            id = UUID.fromString(parts[1]);
         } catch (IllegalArgumentException e) {
             System.out.println("Invalid UUID. Usage: /pull <list_id>");
+            return;
+        }
+
+        ShoppingList remote = comms.getObj(id);
+
+        if (remote == null) {
+            System.out.println("Cloud does not have list " + id + " or request failed.");
+            return;
+        }
+
+        ShoppingList local = storage.getObj(id);
+
+        if (local == null) {
+            storage.putObj(remote);
+            System.out.println("Pulled list " + id + " (no local version existed).");
+        } else {
+            local.merge(remote);
+            storage.putObj(local);
+            System.out.println("Pulled and merged list " + id + " with local version.");
         }
     }
 

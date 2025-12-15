@@ -23,6 +23,7 @@ public class Client {
                 userName = arg.substring("--name=".length());
             }
         }
+        System.out.println(uidStr + " " + userName);
 
         UUID userId;
         if (uidStr == null) {

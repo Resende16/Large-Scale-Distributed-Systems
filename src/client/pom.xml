@@ -83,7 +83,8 @@
                                 <resource>
                                     <directory>src/main/resources</directory>
                                     <includes>
-                                        <include>start-client.sh</include>
+                                        <include>start-client1.sh</include>
+                                        <include>start-client2.sh</include>
                                     </includes>
                                 </resource>
                             </resources>

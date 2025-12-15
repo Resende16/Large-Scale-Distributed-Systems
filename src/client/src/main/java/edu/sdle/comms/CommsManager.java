@@ -79,6 +79,9 @@ public class CommsManager {
      */
     public ShoppingList getObj(UUID key) {
         String json = get(key);
+        if (json == null)
+            return null;
+
         return JsonUtils.fromJson(json, ShoppingList.class);
     }
 
