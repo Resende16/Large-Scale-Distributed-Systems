@@ -60,7 +60,7 @@ public class RequestHandler {
             // Receive timeout is set such that a GET can
             // succeed even if R-1 replicas are down
             _socket.setReceiveTimeOut(TIMEOUT / R);
-            _socket.setSendTimeOut(300);
+            _socket.setSendTimeOut(3000);
             return _socket;
         });
 
