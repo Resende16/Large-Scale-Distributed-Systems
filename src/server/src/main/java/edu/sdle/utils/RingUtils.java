@@ -137,6 +137,8 @@ public class RingUtils {
                 continue; // was already up before
 
             var hints = hintStorage.getHintsForNode(id);
+
+            Node targetNode = new Node(id, node.getZmqAddress());
             System.out.println("\nHINTS TO SEND " + hints.keySet() + "\n");
             // Send hints
             for (var entry : hints.entrySet()) {
@@ -145,7 +147,7 @@ public class RingUtils {
 
                 //todo: fix
                 var reply = RequestUtils.
-                        makeRPutRequest(socket, newRing.getNode(id), key, value);
+                        makeRPutRequest(socket, targetNode, key, value);
                 System.out.println("sent hint " + key + " to " + id + " reply " + reply);
                 // Unless timed out, delete hint from storage
                 if (reply != null)
