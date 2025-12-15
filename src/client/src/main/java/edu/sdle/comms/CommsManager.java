@@ -24,12 +24,6 @@ public class CommsManager {
     private final ArrayList<String> proxies =
             new ArrayList<>(ProxyRegistry.getInstance().getProxyAddresses());
 
-    static void main() {
-        var comms = new CommsManager(8000);
-        var list = new ShoppingList("groceries", new User("vasco"));
-        System.out.println(comms.put(list));
-    }
-
     public CommsManager(int timeoutPerProxy) {
         context = new ZContext();
         socket = context.createSocket(SocketType.REQ);
