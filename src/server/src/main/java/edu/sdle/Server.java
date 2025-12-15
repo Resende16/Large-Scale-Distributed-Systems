@@ -49,13 +49,14 @@ public class Server {
         gossiper.start();
 
         // Main loop
-        loop(state, manager, gossiper);
+        loop(state);
 
         gossiper.shutdown();
         manager.shutdown();
+        RingUtils.cleanupKeys(state);
     }
 
-    private static void loop(NodeState state, CommsManager manager, Gossiper gossiper) {
+    private static void loop(NodeState state) {
         //System.out.println("Enter LEAVE to leave the ring and exit");
         System.out.println("Enter EXIT to exit\n");
 

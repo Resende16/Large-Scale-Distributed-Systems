@@ -1,6 +1,7 @@
 package edu.sdle.utils;
 
 import edu.sdle.HintStorage;
+import edu.sdle.NodeState;
 import edu.sdle.hashring.DistributedHashRing;
 import edu.sdle.hashring.Node;
 import edu.sdle.storage.Storage;
@@ -117,6 +118,25 @@ public class RingUtils {
 
         socket.close();
         context.destroy();
+    }
+
+    // Clean up keys we're no longer responsible for
+    public static void cleanupKeys(NodeState state)
+    {
+        var allKeys = state.storage().getKeys();
+
+        // Get keys we're responsible for
+        var ownedKeys = getKeyRangeForNode(state.ring(),
+                allKeys, state.node())
+                .keySet();
+
+        // Find keys to remove
+        var keysToRemove = new HashSet<>(allKeys);
+        keysToRemove.removeAll(ownedKeys);
+
+        // Remove them
+        for (UUID key : keysToRemove)
+            state.storage().remove(key);
     }
 
     // Transfer all stored hints to node that are back "UP"
